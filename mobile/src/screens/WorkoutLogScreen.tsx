@@ -10,11 +10,11 @@ import {
   SafeAreaView,
   Platform,
   StatusBar,
+  Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../context/AuthContext";
 import { apiService } from "../services/api";
-import { COLORS, SPACING, SIZES } from "../styles/theme";
 
 interface Workout {
   id: string;
@@ -28,9 +28,19 @@ interface Workout {
   timestamp: string;
 }
 
+interface ExerciseConfig {
+  key: string;
+  name: string;
+  image: any;
+  aiAvailable: boolean;
+  defaultWeight: string;
+  defaultReps: string;
+}
+
 export const WorkoutLogScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { token } = useAuth();
-  const [exercise, setExercise] = useState<"Squat" | "Curl">("Squat");
+  const [activeEx, setActiveEx] = useState<string | null>(null);
+  const [showInput, setShowInput] = useState(false);
   const [sets, setSets] = useState("3");
   const [reps, setReps] = useState("10");
   const [weight, setWeight] = useState("40");
@@ -38,6 +48,49 @@ export const WorkoutLogScreen: React.FC<{ navigation: any }> = ({ navigation }) 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const EXERCISES: ExerciseConfig[] = [
+    {
+      key: "Squat",
+      name: "Squats",
+      image: require("../../assets/squat.png"),
+      aiAvailable: true,
+      defaultWeight: "40",
+      defaultReps: "10",
+    },
+    {
+      key: "Curl",
+      name: "Bicep Curls",
+      image: require("../../assets/curl.png"),
+      aiAvailable: true,
+      defaultWeight: "15",
+      defaultReps: "12",
+    },
+    {
+      key: "Pushup",
+      name: "Push-Ups",
+      image: require("../../assets/pushup.png"),
+      aiAvailable: false,
+      defaultWeight: "0",
+      defaultReps: "15",
+    },
+    {
+      key: "Lunge",
+      name: "Lunges",
+      image: require("../../assets/lunge.png"),
+      aiAvailable: false,
+      defaultWeight: "20",
+      defaultReps: "12",
+    },
+    {
+      key: "Press",
+      name: "Overhead Press",
+      image: require("../../assets/press.png"),
+      aiAvailable: false,
+      defaultWeight: "30",
+      defaultReps: "10",
+    },
+  ];
 
   useEffect(() => {
     fetchWorkouts();
@@ -56,11 +109,29 @@ export const WorkoutLogScreen: React.FC<{ navigation: any }> = ({ navigation }) 
     }
   };
 
+  const handleSelect = (key: string) => {
+    if (activeEx === key) {
+      setShowInput(!showInput);
+    } else {
+      setActiveEx(key);
+      setShowInput(true);
+      const ex = EXERCISES.find((e) => e.key === key);
+      if (ex) {
+        setWeight(ex.defaultWeight);
+        setReps(ex.defaultReps);
+        setSets("3");
+      }
+    }
+  };
+
   const handleSave = async () => {
-    if (!token) return;
+    if (!token || !activeEx) return;
     const s = parseInt(sets);
     const r = parseInt(reps);
     const w = parseFloat(weight);
+
+    const activeConfig = EXERCISES.find((e) => e.key === activeEx);
+    if (!activeConfig) return;
 
     if (isNaN(s) || s <= 0 || isNaN(r) || r <= 0 || isNaN(w) || w < 0) {
       setError("Please enter valid positive numbers");
@@ -70,11 +141,9 @@ export const WorkoutLogScreen: React.FC<{ navigation: any }> = ({ navigation }) 
     setError(null);
     setSaving(true);
     try {
-      const newWorkout = await apiService.logWorkout(token, exercise, s, r, w);
+      const newWorkout = await apiService.logWorkout(token, activeConfig.name, s, r, w);
       setWorkouts((prev) => [newWorkout, ...prev]);
-      setSets("3");
-      setReps("10");
-      setWeight("40");
+      setShowInput(false);
     } catch (err: any) {
       setError(err.message || "Failed to save workout log");
     } finally {
@@ -99,115 +168,113 @@ export const WorkoutLogScreen: React.FC<{ navigation: any }> = ({ navigation }) 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <View style={styles.placeholder} />
         <Text style={styles.headerTitle}>Workout Log</Text>
-        <View style={styles.placeholder} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        <View style={styles.formCard}>
-          {error && (
-            <View style={styles.errorBox}>
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          )}
+        {/* 5 Cards Vertically */}
+        <View style={styles.exerciseList}>
+          {EXERCISES.map((ex) => {
+            const isSelected = activeEx === ex.key && showInput;
+            return (
+              <View key={ex.key} style={styles.exerciseContainer}>
+                {/* Horizontal Card Row */}
+                <TouchableOpacity
+                  style={[styles.exerciseCard, isSelected && styles.exerciseCardActive]}
+                  onPress={() => handleSelect(ex.key)}
+                >
+                  <View style={styles.cardLeft}>
+                    <View style={styles.iconContainer}>
+                      <Image source={ex.image} style={styles.silhouetteIcon} resizeMode="contain" />
+                    </View>
+                    <Text style={styles.exerciseName}>{ex.name}</Text>
+                  </View>
+                  <Ionicons
+                    name={isSelected ? "chevron-up" : "chevron-down"}
+                    size={18}
+                    color="#71717A"
+                  />
+                </TouchableOpacity>
 
-          <Text style={styles.label}>Exercise Type</Text>
-          <View style={styles.toggleRow}>
-            <TouchableOpacity
-              style={[styles.toggleBtn, exercise === "Squat" && styles.toggleBtnActive]}
-              onPress={() => setExercise("Squat")}
-            >
-              <Text style={[styles.toggleBtnText, exercise === "Squat" && styles.toggleBtnTextActive]}>
-                Squat
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.toggleBtn, exercise === "Curl" && styles.toggleBtnActive]}
-              onPress={() => setExercise("Curl")}
-            >
-              <Text style={[styles.toggleBtnText, exercise === "Curl" && styles.toggleBtnTextActive]}>
-                Bicep Curl
-              </Text>
-            </TouchableOpacity>
-          </View>
+                {/* Local Collapsible Dropdown Panel */}
+                {isSelected && (
+                  <View style={styles.dropdownPanel}>
+                    {error && <Text style={styles.errorText}>{error}</Text>}
 
-          <View style={styles.row}>
-            <View style={styles.col}>
-              <Text style={styles.label}>Sets</Text>
-              <TextInput
-                style={styles.input}
-                value={sets}
-                onChangeText={setSets}
-                keyboardType="number-pad"
-                placeholder="3"
-              />
-            </View>
-            <View style={styles.col}>
-              <Text style={styles.label}>Reps</Text>
-              <TextInput
-                style={styles.input}
-                value={reps}
-                onChangeText={setReps}
-                keyboardType="number-pad"
-                placeholder="10"
-              />
-            </View>
-          </View>
+                    <View style={styles.inputRow}>
+                      <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Sets</Text>
+                        <TextInput
+                          style={styles.input}
+                          value={sets}
+                          onChangeText={setSets}
+                          keyboardType="number-pad"
+                        />
+                      </View>
+                      <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Reps</Text>
+                        <TextInput
+                          style={styles.input}
+                          value={reps}
+                          onChangeText={setReps}
+                          keyboardType="number-pad"
+                        />
+                      </View>
+                      <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Weight (kg)</Text>
+                        <TextInput
+                          style={styles.input}
+                          value={weight}
+                          onChangeText={setWeight}
+                          keyboardType="decimal-pad"
+                        />
+                      </View>
+                    </View>
 
-          <Text style={styles.label}>Weight (kg)</Text>
-          <TextInput
-            style={styles.input}
-            value={weight}
-            onChangeText={setWeight}
-            keyboardType="decimal-pad"
-            placeholder="40"
-          />
+                    <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={saving}>
+                      {saving ? (
+                        <ActivityIndicator color="#FFFFFF" />
+                      ) : (
+                        <Text style={styles.saveBtnText}>Log Set</Text>
+                      )}
+                    </TouchableOpacity>
 
-          <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={saving}>
-            {saving ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <Text style={styles.saveBtnText}>Save Workout Log</Text>
-            )}
-          </TouchableOpacity>
+                    {/* AI Camera Link if available */}
+                    {ex.aiAvailable && (
+                      <TouchableOpacity
+                        style={styles.aiLink}
+                        onPress={() =>
+                          navigation.navigate("Pose", { mode: ex.key === "Squat" ? "squat" : "curl" })
+                        }
+                      >
+                        <Ionicons name="scan-outline" size={14} color="#09090B" />
+                        <Text style={styles.aiLinkText}>Start Real-Time AI Scan</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
+              </View>
+            );
+          })}
         </View>
 
-        <Text style={styles.sectionTitle}>Recent Workout Activity</Text>
+        {/* History Log list */}
+        <Text style={styles.sectionTitle}>History</Text>
 
         {loading ? (
-          <ActivityIndicator size="small" color={COLORS.primary} style={styles.loader} />
+          <ActivityIndicator size="small" color="#09090B" style={styles.loader} />
         ) : workouts.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyText}>No workout logs recorded yet</Text>
-          </View>
+          <Text style={styles.emptyText}>No logs found</Text>
         ) : (
           workouts.map((w) => (
             <View key={w.id} style={styles.logCard}>
               <View style={styles.logHeader}>
-                <View style={styles.logInfo}>
-                  <Text style={styles.logTitle}>{w.exercise}</Text>
-                  <Text style={styles.logDate}>{formatDate(w.timestamp)}</Text>
-                </View>
+                <Text style={styles.logTitle}>{w.exercise}</Text>
                 <Text style={styles.logDetail}>
                   {w.sets} sets × {w.reps} reps @ {w.weight}kg
                 </Text>
               </View>
-
-              <View style={styles.logMetrics}>
-                <View style={styles.metricItem}>
-                  <Ionicons name="flame-outline" size={13} color="#F97316" />
-                  <Text style={styles.metricLabel}>{w.calories_burned} kcal</Text>
-                </View>
-                <View style={styles.metricItem}>
-                  <Ionicons name="flash-outline" size={13} color={COLORS.success} />
-                  <Text style={styles.metricLabel}>Intensity: {w.intensity_score}</Text>
-                </View>
-                <View style={styles.metricItem}>
-                  <Ionicons name="time-outline" size={13} color={COLORS.textSecondary} />
-                  <Text style={styles.metricLabel}>{w.duration_minutes} min</Text>
-                </View>
-              </View>
+              <Text style={styles.logDate}>{formatDate(w.timestamp)}</Text>
             </View>
           ))
         )}
@@ -219,200 +286,185 @@ export const WorkoutLogScreen: React.FC<{ navigation: any }> = ({ navigation }) 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: "#FFFFFF",
     paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
   },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
+    paddingHorizontal: 20,
+    paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    backgroundColor: COLORS.background,
-  },
-  logoutBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: COLORS.background,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    borderBottomColor: "#F4F4F5",
   },
   headerTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: COLORS.textPrimary,
-  },
-  placeholder: {
-    width: 36,
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#09090B",
+    letterSpacing: -0.5,
   },
   scrollContainer: {
-    padding: SPACING.lg,
-    maxWidth: Platform.OS === "web" ? 500 : undefined,
-    width: Platform.OS === "web" ? "100%" : undefined,
+    padding: 20,
+    maxWidth: Platform.OS === "web" ? 480 : undefined,
     alignSelf: Platform.OS === "web" ? "center" : undefined,
+    width: "100%",
   },
-  formCard: {
-    backgroundColor: COLORS.card,
-    borderRadius: SIZES.radiusMd,
-    padding: SPACING.lg,
+  exerciseList: {
+    marginBottom: 24,
+  },
+  exerciseContainer: {
+    marginBottom: 16,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: SPACING.xl,
+    borderColor: "#E4E4E7",
+    borderRadius: 8,
+    backgroundColor: "#FFFFFF",
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.02,
+    shadowRadius: 2,
+    elevation: 1,
   },
-  errorBox: {
-    backgroundColor: "rgba(239, 68, 68, 0.05)",
-    borderWidth: 1,
-    borderColor: COLORS.error,
-    borderRadius: SIZES.radiusSm,
-    padding: SPACING.sm,
-    marginBottom: SPACING.md,
-  },
-  errorText: {
-    color: COLORS.error,
-    fontSize: 13,
-    textAlign: "center",
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: COLORS.textPrimary,
-    marginBottom: SPACING.xs,
-  },
-  toggleRow: {
+  exerciseCard: {
     flexDirection: "row",
-    backgroundColor: COLORS.accent,
-    borderRadius: SIZES.radiusSm,
-    padding: 2,
-    marginBottom: SPACING.md,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  toggleBtn: {
-    flex: 1,
-    paddingVertical: SPACING.sm - 2,
     alignItems: "center",
-    borderRadius: SIZES.radiusSm - 2,
-  },
-  toggleBtnActive: {
-    backgroundColor: COLORS.background,
-  },
-  toggleBtnText: {
-    color: COLORS.textSecondary,
-    fontSize: 13,
-    fontWeight: "500",
-  },
-  toggleBtnTextActive: {
-    color: COLORS.textPrimary,
-    fontWeight: "600",
-  },
-  row: {
-    flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: SPACING.md,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    backgroundColor: "#FFFFFF",
   },
-  col: {
-    width: "48%",
+  exerciseCardActive: {
+    backgroundColor: "#FAFAFA",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E4E4E7",
   },
-  input: {
-    height: SIZES.inputHeight,
-    backgroundColor: COLORS.background,
-    borderRadius: SIZES.radiusSm,
-    borderColor: COLORS.border,
-    borderWidth: 1,
-    paddingHorizontal: SPACING.sm,
-    color: COLORS.textPrimary,
-    fontSize: 14,
-    marginBottom: SPACING.md,
+  cardLeft: {
+    flexDirection: "row",
+    alignItems: "center",
   },
-  saveBtn: {
-    height: SIZES.inputHeight,
-    backgroundColor: COLORS.primary,
-    borderRadius: SIZES.radiusSm,
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 6, // Square/rounded box, not a circle
+    backgroundColor: "#F4F4F5",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: SPACING.xs,
+    marginRight: 16,
+  },
+  silhouetteIcon: {
+    width: 48,
+    height: 48,
+  },
+  exerciseName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#09090B",
+  },
+  dropdownPanel: {
+    padding: 20,
+    backgroundColor: "#FFFFFF",
+  },
+  errorText: {
+    color: "#EF4444",
+    fontSize: 12,
+    marginBottom: 12,
+  },
+  inputRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  inputGroup: {
+    flex: 1,
+    marginHorizontal: 4,
+  },
+  label: {
+    fontSize: 11,
+    fontWeight: "500",
+    color: "#71717A",
+    marginBottom: 6,
+    textTransform: "uppercase",
+    letterSpacing: 0.3,
+  },
+  input: {
+    height: 44,
+    borderWidth: 1,
+    borderColor: "#E4E4E7",
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    fontSize: 14,
+    color: "#09090B",
+    backgroundColor: "#FAFAFA",
+  },
+  saveBtn: {
+    backgroundColor: "#09090B",
+    height: 44,
+    borderRadius: 6,
+    justifyContent: "center",
+    alignItems: "center",
   },
   saveBtnText: {
     color: "#FFFFFF",
     fontSize: 14,
     fontWeight: "600",
   },
-  sectionTitle: {
-    fontSize: 16,
+  aiLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: "#E4E4E7",
+    borderRadius: 6,
+    backgroundColor: "#FFFFFF",
+  },
+  aiLinkText: {
+    fontSize: 12,
+    color: "#09090B",
+    marginLeft: 6,
     fontWeight: "600",
-    color: COLORS.textPrimary,
-    marginBottom: SPACING.md,
-    letterSpacing: -0.2,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#09090B",
+    marginBottom: 12,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   loader: {
-    marginVertical: SPACING.xl,
-  },
-  emptyCard: {
-    padding: SPACING.xl,
-    backgroundColor: COLORS.card,
-    borderRadius: SIZES.radiusMd,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    alignItems: "center",
+    marginVertical: 20,
   },
   emptyText: {
-    color: COLORS.textSecondary,
+    color: "#71717A",
     fontSize: 13,
     fontStyle: "italic",
   },
   logCard: {
-    backgroundColor: COLORS.card,
-    borderRadius: SIZES.radiusMd,
-    padding: SPACING.md,
-    marginBottom: SPACING.md,
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: "#E4E4E7",
+    borderRadius: 6,
+    padding: 12,
+    marginBottom: 8,
   },
   logHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    paddingBottom: SPACING.sm,
-    marginBottom: SPACING.sm,
-  },
-  logInfo: {
-    flex: 1,
+    alignItems: "center",
   },
   logTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "600",
-    color: COLORS.textPrimary,
-  },
-  logDate: {
-    fontSize: 11,
-    color: COLORS.textSecondary,
-    marginTop: 2,
+    color: "#09090B",
   },
   logDetail: {
-    fontSize: 13,
-    color: COLORS.textPrimary,
-    fontWeight: "500",
-  },
-  logMetrics: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  metricItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginRight: SPACING.md,
-  },
-  metricLabel: {
     fontSize: 12,
-    color: COLORS.textSecondary,
-    marginLeft: 4,
     fontWeight: "500",
+    color: "#27272A",
+  },
+  logDate: {
+    fontSize: 10,
+    color: "#71717A",
+    marginTop: 4,
   },
 });

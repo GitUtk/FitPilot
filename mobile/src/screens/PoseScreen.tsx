@@ -15,10 +15,13 @@ import { COLORS, SPACING, SIZES } from "../styles/theme";
 
 type ExerciseMode = "squat" | "curl";
 
-export const PoseScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+export const PoseScreen: React.FC<{ navigation: any; route?: any }> = ({ navigation, route }) => {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [isActive, setIsActive] = useState(false);
-  const [exerciseMode, setExerciseMode] = useState<ExerciseMode>("squat");
+  const routeMode = route?.params?.mode?.toLowerCase();
+  const [exerciseMode, setExerciseMode] = useState<ExerciseMode>(
+    (routeMode === "curl" || routeMode === "squat") ? routeMode : "squat"
+  );
   const [kneeAngle, setKneeAngle] = useState<number | string>("--");
   const [backAngle, setBackAngle] = useState<number | string>("--");
   const [elbowAngle, setElbowAngle] = useState<number | string>("--");
