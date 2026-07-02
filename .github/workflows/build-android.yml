@@ -152,6 +152,7 @@ jobs:
             --stacktrace
         env:
           GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4g -Dorg.gradle.daemon=false"
+          EXPO_PUBLIC_QUICKPOSE_SDK_KEY: "01KWJ2D0XS271NBAFJMCXCF950"
 
       - name: Version and Rename APK file
         run: |
