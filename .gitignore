@@ -44,6 +44,8 @@ web-build/
 .expo-shared/
 .metro/
 dist/
+mobile/android/
+mobile/ios/
 
 # Python Virtual Environments
 .venv/
@@ -133,3 +135,15 @@ db.lock
 *.sw?
 *.swo
 *.swp
+
+# Signing keystores & credentials
+*.keystore
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.pem
+expo-env.d.ts
+.metro-health-check*
+

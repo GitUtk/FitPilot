@@ -7,9 +7,20 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.gitutk.fitpilot",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Allow FitPilot to access the camera for real-time biomechanical analysis and form correction.",
+        "NSMotionUsageDescription": "Allow FitPilot to access motion sensors for live step tracking and active calorie estimation."
+      }
     },
     "android": {
+      "package": "com.gitutk.fitpilot",
+      "versionCode": 1,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.ACTIVITY_RECOGNITION"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
