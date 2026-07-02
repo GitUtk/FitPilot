@@ -4,6 +4,18 @@ export const MOBILE_POSE_HTML = `
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <script>
+    // Global Error Logger to pipe errors to React Native terminal
+    window.onerror = function(message, source, lineno, colno, error) {
+      try {
+        window.ReactNativeWebView.postMessage(JSON.stringify({
+          type: 'log',
+          message: 'JS Error: ' + message + ' (' + source + ':' + lineno + ')'
+        }));
+      } catch (e) {}
+      return false;
+    };
+  </script>
   <style>
     body, html {
       margin: 0;
@@ -46,9 +58,11 @@ export const MOBILE_POSE_HTML = `
       font-weight: 500;
       z-index: 10;
       text-align: center;
-      background-color: rgba(0, 0, 0, 0.6);
-      padding: 12px 20px;
+      background-color: rgba(0, 0, 0, 0.75);
+      padding: 16px 24px;
       border-radius: 8px;
+      width: 80%;
+      max-width: 320px;
     }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
@@ -71,18 +85,22 @@ export const MOBILE_POSE_HTML = `
     let isActive = false;
 
     function sendLog(msg) {
-      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'log', message: msg }));
+      try {
+        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'log', message: msg }));
+      } catch (e) {}
     }
 
     function sendPose(knee, back, elbow, correct, alerts) {
-      window.ReactNativeWebView.postMessage(JSON.stringify({
-        type: 'pose',
-        kneeAngle: knee,
-        backAngle: back,
-        elbowAngle: elbow,
-        isFormCorrect: correct,
-        feedback: alerts
-      }));
+      try {
+        window.ReactNativeWebView.postMessage(JSON.stringify({
+          type: 'pose',
+          kneeAngle: knee,
+          backAngle: back,
+          elbowAngle: elbow,
+          isFormCorrect: correct,
+          feedback: alerts
+        }));
+      } catch (e) {}
     }
 
     // React Native Communication
@@ -92,6 +110,7 @@ export const MOBILE_POSE_HTML = `
         if (data.type === 'setup') {
           exerciseMode = data.mode;
           isActive = data.isActive;
+          sendLog('WebView configured. exerciseMode=' + exerciseMode + ', isActive=' + isActive);
         }
       } catch (e) {
         sendLog('Error parsing setup data: ' + e.message);
@@ -255,54 +274,66 @@ export const MOBILE_POSE_HTML = `
     // Load Model
     let pose;
     try {
-      pose = new Pose({
-        locateFile: (file) => 'https://cdn.jsdelivr.net/npm/@mediapipe/pose/' + file
-      });
-      pose.setOptions({
-        modelComplexity: 1,
-        smoothLandmarks: true,
-        minDetectionConfidence: 0.5,
-        minTrackingConfidence: 0.5
-      });
-      pose.onResults(onPoseResults);
-      sendLog('MediaPipe Pose instance created.');
+      if (typeof Pose === 'undefined') {
+        sendLog('Error: Pose script is not loaded yet.');
+      } else {
+        pose = new Pose({
+          locateFile: (file) => 'https://cdn.jsdelivr.net/npm/@mediapipe/pose/' + file
+        });
+        pose.setOptions({
+          modelComplexity: 1,
+          smoothLandmarks: true,
+          minDetectionConfidence: 0.5,
+          minTrackingConfidence: 0.5
+        });
+        pose.onResults(onPoseResults);
+        sendLog('MediaPipe Pose instance created successfully.');
+      }
     } catch (e) {
       sendLog('Failed to initialize MediaPipe Pose: ' + e.message);
     }
 
-    // Launch Video Stream
-    navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
-      audio: false
-    }).then((stream) => {
-      video.srcObject = stream;
-      video.onloadedmetadata = () => {
-        video.play();
-        loadingDiv.style.display = 'none';
-        
-        canvas.width = container.clientWidth;
-        canvas.height = container.clientHeight;
-        window.addEventListener('resize', () => {
+    // Secure Context & getUserMedia validation
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      const errMessage = 'Camera API (getUserMedia) not supported in this WebView. Secure Context (HTTPS) or appropriate permissions required. isSecureContext=' + window.isSecureContext;
+      sendLog(errMessage);
+      loadingDiv.innerText = 'Camera access blocked (Secure Context required).';
+    } else {
+      // Launch Video Stream
+      navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+        audio: false
+      }).then((stream) => {
+        video.srcObject = stream;
+        video.onloadedmetadata = () => {
+          video.play();
+          loadingDiv.style.display = 'none';
+          sendLog('Camera stream playing successfully.');
+          
           canvas.width = container.clientWidth;
           canvas.height = container.clientHeight;
-        });
+          window.addEventListener('resize', () => {
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+          });
 
-        const camera = new Camera(video, {
-          onFrame: async () => {
-            if (isActive) {
-              await pose.send({ image: video });
-            }
-          },
-          width: 640,
-          height: 480
-        });
-        camera.start();
-        sendLog('Camera loop started.');
-      };
-    }).catch((e) => {
-      sendLog('Camera access denied: ' + e.message);
-      loadingDiv.innerText = 'Camera access required for pose scanning.';
-    });
+          const camera = new Camera(video, {
+            onFrame: async () => {
+              if (isActive && pose) {
+                await pose.send({ image: video });
+              }
+            },
+            width: 640,
+            height: 480
+          });
+          camera.start();
+          sendLog('Camera tracking loop active.');
+        };
+      }).catch((e) => {
+        sendLog('Camera access denied: ' + e.message);
+        loadingDiv.innerText = 'Camera access required for pose scanning. Error: ' + e.message;
+      });
+    }
   </script>
 </body>
 </html>

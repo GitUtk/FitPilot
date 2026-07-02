@@ -296,7 +296,7 @@ export const QuickPoseCameraWrapper: React.FC<QuickPoseCameraWrapperProps> = ({
       <WebView
         ref={webViewRef}
         originWhitelist={["*"]}
-        source={{ html: MOBILE_POSE_HTML }}
+        source={{ html: MOBILE_POSE_HTML, baseUrl: "https://localhost" }}
         style={style || styles.camera}
         javaScriptEnabled={true}
         domStorageEnabled={true}
