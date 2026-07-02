@@ -13,6 +13,101 @@ import { COLORS, SPACING, SIZES } from "../styles/theme";
 
 type ExerciseMode = "squat" | "curl";
 
+const SkeletonOverlay: React.FC<{ points: any; isFormCorrect: boolean }> = ({ points, isFormCorrect }) => {
+  const [layout, setLayout] = useState({ width: 0, height: 0 });
+
+  if (!points) return null;
+
+  const connections = [
+    ["left_shoulder", "right_shoulder"],
+    ["left_shoulder", "left_elbow"],
+    ["left_elbow", "left_wrist"],
+    ["right_shoulder", "right_elbow"],
+    ["right_elbow", "right_wrist"],
+    ["left_shoulder", "left_hip"],
+    ["right_shoulder", "right_hip"],
+    ["left_hip", "right_hip"],
+    ["left_hip", "left_knee"],
+    ["left_knee", "left_ankle"],
+    ["right_hip", "right_knee"],
+    ["right_knee", "right_ankle"],
+  ];
+
+  const color = isFormCorrect ? "#10B981" : "#EF4444";
+
+  return (
+    <View
+      style={StyleSheet.absoluteFillObject}
+      onLayout={(e) =>
+        setLayout({
+          width: e.nativeEvent.layout.width,
+          height: e.nativeEvent.layout.height,
+        })
+      }
+    >
+      {layout.width > 0 && layout.height > 0 && (
+        <>
+          {connections.map(([p1, p2], idx) => {
+            const pt1 = points[p1];
+            const pt2 = points[p2];
+            if (!pt1 || !pt2) return null;
+
+            const x1 = pt1.x * layout.width;
+            const y1 = pt1.y * layout.height;
+            const x2 = pt2.x * layout.width;
+            const y2 = pt2.y * layout.height;
+
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            const length = Math.sqrt(dx * dx + dy * dy);
+            const angle = Math.atan2(dy, dx);
+
+            const cx = (x1 + x2) / 2;
+            const cy = (y1 + y2) / 2;
+
+            return (
+              <View
+                key={`bone-${idx}`}
+                style={{
+                  position: "absolute",
+                  left: cx - length / 2,
+                  top: cy - 2,
+                  width: length,
+                  height: 4,
+                  backgroundColor: color,
+                  transform: [{ rotate: `${angle}rad` }],
+                  borderRadius: 2,
+                }}
+              />
+            );
+          })}
+
+          {Object.entries(points).map(([key, pt]: any) => {
+            const x = pt.x * layout.width;
+            const y = pt.y * layout.height;
+            return (
+              <View
+                key={`joint-${key}`}
+                style={{
+                  position: "absolute",
+                  left: x - 6,
+                  top: y - 6,
+                  width: 12,
+                  height: 12,
+                  borderRadius: 6,
+                  backgroundColor: color,
+                  borderWidth: 2,
+                  borderColor: "#FFFFFF",
+                }}
+              />
+            );
+          })}
+        </>
+      )}
+    </View>
+  );
+};
+
 export const PoseScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [isActive, setIsActive] = useState(false);
@@ -25,6 +120,7 @@ export const PoseScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [sdkLoaded, setSdkLoaded] = useState(false);
   const [isModelReady, setIsModelReady] = useState(false);
   const [isWasmLoaded, setIsWasmLoaded] = useState(false);
+  const [simulatedPoints, setSimulatedPoints] = useState<any>(null);
 
   const videoRef = useRef<any>(null);
   const canvasRef = useRef<any>(null);
@@ -317,6 +413,22 @@ export const PoseScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         let correct = true;
         const alerts: string[] = [];
 
+        // Base points in percentage (0 to 1)
+        const points: any = {
+          left_shoulder: { x: 0.35, y: 0.25 },
+          right_shoulder: { x: 0.65, y: 0.25 },
+          left_elbow: { x: 0.28, y: 0.42 },
+          right_elbow: { x: 0.72, y: 0.42 },
+          left_wrist: { x: 0.28, y: 0.58 },
+          right_wrist: { x: 0.72, y: 0.58 },
+          left_hip: { x: 0.40, y: 0.55 },
+          right_hip: { x: 0.60, y: 0.55 },
+          left_knee: { x: 0.40, y: 0.72 },
+          right_knee: { x: 0.60, y: 0.72 },
+          left_ankle: { x: 0.40, y: 0.88 },
+          right_ankle: { x: 0.60, y: 0.88 },
+        };
+
         if (currentMode === "squat") {
           const knee = Math.round(130 + 40 * cycle);
           const back = cycle < -0.5 ? Math.round(135 + 5 * cycle) : Math.round(155 + 5 * cycle);
@@ -326,13 +438,29 @@ export const PoseScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           setBackAngle(back);
           setElbowAngle("--");
 
+          const depth = (1 - cycle) / 2; // 0 to 1
+          points.left_hip.y = 0.55 + 0.15 * depth;
+          points.right_hip.y = 0.55 + 0.15 * depth;
+          points.left_knee.y = 0.72 + 0.05 * depth;
+          points.right_knee.y = 0.72 + 0.05 * depth;
+          points.left_shoulder.y = 0.25 + 0.18 * depth;
+          points.right_shoulder.y = 0.25 + 0.18 * depth;
+          points.left_elbow.y = 0.42 + 0.18 * depth;
+          points.right_elbow.y = 0.42 + 0.18 * depth;
+          points.left_wrist.y = 0.58 + 0.18 * depth;
+          points.right_wrist.y = 0.58 + 0.18 * depth;
+
           if (caveToggle) {
             alerts.push("Knees caving in — push them out.");
             correct = false;
+            points.left_knee.x = 0.45;
+            points.right_knee.x = 0.55;
           }
           if (back < 145) {
             alerts.push("Keep your back straight.");
             correct = false;
+            points.left_shoulder.x = 0.30;
+            points.right_shoulder.x = 0.60;
           }
           if (correct) {
             if (knee < 100) {
@@ -350,13 +478,23 @@ export const PoseScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           setBackAngle(back);
           setElbowAngle(elbow);
 
+          const curlProgress = (1 - cycle) / 2; // 0 to 1
+          points.left_wrist.y = 0.58 - 0.28 * curlProgress;
+          points.right_wrist.y = 0.58 - 0.28 * curlProgress;
+          points.left_wrist.x = 0.28 + 0.05 * curlProgress;
+          points.right_wrist.x = 0.72 - 0.05 * curlProgress;
+
           if (driftToggle) {
             alerts.push("Keep elbows tucked to your side.");
             correct = false;
+            points.left_elbow.x = 0.22;
+            points.right_elbow.x = 0.78;
           }
           if (back < 160) {
             alerts.push("Avoid leaning back.");
             correct = false;
+            points.left_shoulder.x = 0.38;
+            points.right_shoulder.x = 0.62;
           }
           if (correct) {
             if (elbow < 60) {
@@ -369,6 +507,7 @@ export const PoseScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
         setFeedback(alerts);
         setIsFormCorrect(correct);
+        setSimulatedPoints(points);
       }, 150);
     }
   };
@@ -387,6 +526,7 @@ export const PoseScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     setIsActive(false);
     activeRef.current = false;
     setIsWasmLoaded(false);
+    setSimulatedPoints(null);
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
@@ -415,6 +555,23 @@ export const PoseScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     setIsFormCorrect(true);
   };
 
+  if (hasPermission === null) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#FFFFFF" />
+        <Text style={styles.loadingText}>Requesting camera permission...</Text>
+      </View>
+    );
+  }
+
+  if (hasPermission === false) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.errorText}>No access to camera. Please enable camera permissions in settings.</Text>
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.cameraViewport}>
@@ -432,7 +589,12 @@ export const PoseScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             />
           </View>
         ) : (
-          <CameraView style={styles.fullscreenNativeCamera} facing="front" />
+          <View style={StyleSheet.absoluteFillObject}>
+            <CameraView style={styles.fullscreenNativeCamera} facing="front" />
+            {isActive && simulatedPoints && (
+              <SkeletonOverlay points={simulatedPoints} isFormCorrect={isFormCorrect} />
+            )}
+          </View>
         )}
 
         <View style={styles.headerOverlay}>
@@ -529,6 +691,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#000000",
     justifyContent: "center",
     alignItems: "center",
+  },
+  loadingText: {
+    color: "#FFFFFF",
+    marginTop: 12,
+    fontSize: 14,
+    fontWeight: "500",
   },
   errorText: {
     color: "#EF4444",
