@@ -1,9 +1,11 @@
 import React, { useRef, useEffect } from "react";
 import { StyleSheet, View, Text, Platform } from "react-native";
+import { WebView } from "react-native-webview";
 import ReactNativeMediapipePose, {
   ReactNativeMediapipePoseView,
   PoseDetectionResult,
 } from "@gymbrosinc/react-native-mediapipe-pose";
+import { MOBILE_POSE_HTML } from "../utils/PoseHtml";
 
 export interface PoseUpdateData {
   reps: number;
@@ -44,6 +46,7 @@ export const QuickPoseCameraWrapper: React.FC<QuickPoseCameraWrapperProps> = ({
 }) => {
   const repsRef = useRef(0);
   const repStateRef = useRef<"up" | "down">("up");
+  const webViewRef = useRef<WebView>(null);
 
   // Reset reps when exercise mode changes
   useEffect(() => {
@@ -58,6 +61,19 @@ export const QuickPoseCameraWrapper: React.FC<QuickPoseCameraWrapperProps> = ({
       isFormCorrect: true,
     });
   }, [exerciseMode]);
+
+  // Android WebView initialization postMessage
+  useEffect(() => {
+    if (Platform.OS === "android" && webViewRef.current) {
+      webViewRef.current.postMessage(
+        JSON.stringify({
+          type: "setup",
+          mode: exerciseMode,
+          isActive: isActive,
+        })
+      );
+    }
+  }, [exerciseMode, isActive]);
 
   // Request camera permissions through package on iOS
   useEffect(() => {
@@ -75,13 +91,11 @@ export const QuickPoseCameraWrapper: React.FC<QuickPoseCameraWrapperProps> = ({
     }
   }, [isActive]);
 
+  // iOS-specific Pose Detection handler
   const handlePoseDetected = (event: { nativeEvent: PoseDetectionResult }) => {
     const { landmarks } = event.nativeEvent;
     if (!landmarks || landmarks.length === 0) return;
 
-    // Determine the side of the body with better visibility/confidence
-    // Left landmarks: shoulder (11), elbow (13), wrist (15), hip (23), knee (25), ankle (27)
-    // Right landmarks: shoulder (12), elbow (14), wrist (16), hip (24), knee (26), ankle (28)
     const leftArmVis =
       (landmarks[11]?.visibility || 0) +
       (landmarks[13]?.visibility || 0) +
@@ -118,7 +132,6 @@ export const QuickPoseCameraWrapper: React.FC<QuickPoseCameraWrapperProps> = ({
     let feedback: string[] = [];
     let isFormCorrect = true;
 
-    // 1. Calculate angles if landmarks are visible (confidence > 0.5)
     if (
       shoulder &&
       elbow &&
@@ -149,7 +162,6 @@ export const QuickPoseCameraWrapper: React.FC<QuickPoseCameraWrapperProps> = ({
       chosenHip.visibility > 0.5 &&
       chosenShoulder.visibility > 0.5
     ) {
-      // Calculate back lean relative to vertical line
       const dx = chosenShoulder.x - chosenHip.x;
       const dy = chosenShoulder.y - chosenHip.y;
       const rad = Math.atan2(Math.abs(dx), Math.abs(dy));
@@ -157,7 +169,6 @@ export const QuickPoseCameraWrapper: React.FC<QuickPoseCameraWrapperProps> = ({
       backAngle = Math.round(180 - angleFromVertical);
     }
 
-    // 2. State-Machine Rep Counter and Real-time Coaching Feedback
     if (exerciseMode === "curl") {
       if (typeof elbowAngle === "number") {
         if (elbowAngle < 60) {
@@ -228,6 +239,50 @@ export const QuickPoseCameraWrapper: React.FC<QuickPoseCameraWrapperProps> = ({
     });
   };
 
+  // Android WebView Message Handler
+  const handleWebViewMessage = (event: any) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
+      if (data.type === "pose") {
+        const kneeVal =
+          typeof data.kneeAngle === "number"
+            ? data.kneeAngle
+            : parseFloat(data.kneeAngle);
+        const elbowVal =
+          typeof data.elbowAngle === "number"
+            ? data.elbowAngle
+            : parseFloat(data.elbowAngle);
+
+        if (exerciseMode === "curl" && !isNaN(elbowVal)) {
+          if (repStateRef.current === "up" && elbowVal < 60) {
+            repStateRef.current = "down";
+          } else if (repStateRef.current === "down" && elbowVal > 130) {
+            repStateRef.current = "up";
+            repsRef.current += 1;
+          }
+        } else if (exerciseMode === "squat" && !isNaN(kneeVal)) {
+          if (repStateRef.current === "up" && kneeVal < 110) {
+            repStateRef.current = "down";
+          } else if (repStateRef.current === "down" && kneeVal > 150) {
+            repStateRef.current = "up";
+            repsRef.current += 1;
+          }
+        }
+
+        onPoseUpdate({
+          reps: repsRef.current,
+          kneeAngle: data.kneeAngle,
+          backAngle: data.backAngle,
+          elbowAngle: data.elbowAngle,
+          feedback: data.feedback || [],
+          isFormCorrect: data.isFormCorrect ?? true,
+        });
+      }
+    } catch (e) {
+      console.log("Error parsing WebView message:", e);
+    }
+  };
+
   if (!isActive) {
     return (
       <View style={styles.cameraPlaceholder}>
@@ -236,6 +291,28 @@ export const QuickPoseCameraWrapper: React.FC<QuickPoseCameraWrapperProps> = ({
     );
   }
 
+  if (Platform.OS === "android") {
+    return (
+      <WebView
+        ref={webViewRef}
+        originWhitelist={["*"]}
+        source={{ html: MOBILE_POSE_HTML }}
+        style={style || styles.camera}
+        javaScriptEnabled={true}
+        domStorageEnabled={true}
+        allowsInlineMediaPlayback={true}
+        mediaPlaybackRequiresUserAction={false}
+        onMessage={handleWebViewMessage}
+        {...({
+          onPermissionRequest: (event: any) => {
+            event.grant(event.resources);
+          }
+        } as any)}
+      />
+    );
+  }
+
+  // iOS Native MediaPipe
   return (
     <ReactNativeMediapipePoseView
       style={style || styles.camera}
