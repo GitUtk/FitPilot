@@ -1,0 +1,13 @@
+diff --git a/node_modules/@quickpose/react-native/android/src/main/java/ai/quickpose/reactnative/QuickPoseViewManager.kt b/node_modules/@quickpose/react-native/android/src/main/java/ai/quickpose/reactnative/QuickPoseViewManager.kt
+index 05f72d1..b363f32 100644
+--- a/node_modules/@quickpose/react-native/android/src/main/java/ai/quickpose/reactnative/QuickPoseViewManager.kt
++++ b/node_modules/@quickpose/react-native/android/src/main/java/ai/quickpose/reactnative/QuickPoseViewManager.kt
+@@ -180,7 +180,7 @@ class QuickPoseViewManager : SimpleViewManager<FrameLayout>() {
+ 
+         val keyed = mapFeatures()
+         if (keyed.isEmpty()) return
+-        currentFeatureKeys = keyed.map { it.first }
++        currentFeatures = keyed
+         val features = keyed.map { it.second }.toTypedArray()
+ 
+         val lifecycleOwner = activity as? androidx.lifecycle.LifecycleOwner ?: return
