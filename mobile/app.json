@@ -37,6 +37,14 @@
           "cameraPermission": "Allow FitPilot to access the camera for real-time biomechanical analysis and form correction.",
           "microphonePermission": "Allow FitPilot to access the microphone for audio instructions."
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 26
+          }
+        }
       ]
     ]
   }
