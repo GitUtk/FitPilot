@@ -109,7 +109,7 @@ export const QuickPoseCameraWrapper: React.FC<QuickPoseCameraWrapperProps> = ({
 
   return (
     <QuickPoseView
-      sdkKey="free-trial"
+      sdkKey={process.env.EXPO_PUBLIC_QUICKPOSE_SDK_KEY || "free-trial"}
       features={activeFeatures}
       useFrontCamera={true}
       style={style || styles.camera}
