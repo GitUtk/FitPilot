@@ -1,6 +1,9 @@
-import React, { useMemo, useRef, useEffect } from "react";
-import { StyleSheet, View, Text } from "react-native";
-import { QuickPoseView, QuickPoseThresholdCounter } from "@quickpose/react-native";
+import React, { useRef, useEffect } from "react";
+import { StyleSheet, View, Text, Platform } from "react-native";
+import ReactNativeMediapipePose, {
+  ReactNativeMediapipePoseView,
+  PoseDetectionResult,
+} from "@gymbrosinc/react-native-mediapipe-pose";
 
 export interface PoseUpdateData {
   reps: number;
@@ -18,17 +21,34 @@ export interface QuickPoseCameraWrapperProps {
   style?: any;
 }
 
+// Helper to calculate 2D angle between three points: p1, p2 (vertex), p3
+const calculateAngle = (
+  p1: { x: number; y: number },
+  p2: { x: number; y: number },
+  p3: { x: number; y: number }
+) => {
+  const radians =
+    Math.atan2(p3.y - p2.y, p3.x - p2.x) - Math.atan2(p1.y - p2.y, p1.x - p2.x);
+  let angle = Math.abs((radians * 180.0) / Math.PI);
+  if (angle > 180.0) {
+    angle = 360.0 - angle;
+  }
+  return angle;
+};
+
 export const QuickPoseCameraWrapper: React.FC<QuickPoseCameraWrapperProps> = ({
   isActive,
   exerciseMode,
   onPoseUpdate,
   style,
 }) => {
-  const thresholdCounterRef = useRef(new QuickPoseThresholdCounter(0.6, 0.3));
+  const repsRef = useRef(0);
+  const repStateRef = useRef<"up" | "down">("up");
 
-  // Reset reps count when exercise mode changes
+  // Reset reps when exercise mode changes
   useEffect(() => {
-    thresholdCounterRef.current.reset();
+    repsRef.current = 0;
+    repStateRef.current = "up";
     onPoseUpdate({
       reps: 0,
       kneeAngle: "--",
@@ -39,58 +59,167 @@ export const QuickPoseCameraWrapper: React.FC<QuickPoseCameraWrapperProps> = ({
     });
   }, [exerciseMode]);
 
-  const activeFeatures = useMemo(() => {
-    const feat = exerciseMode === "squat" ? "fitness.squats" : "fitness.bicepCurls";
-    return [feat, "overlay.wholeBody", "rangeOfMotion.knee", "rangeOfMotion.elbow", "rangeOfMotion.back"];
-  }, [exerciseMode]);
+  // Request camera permissions through package on iOS
+  useEffect(() => {
+    const requestPermission = async () => {
+      try {
+        if (Platform.OS === "ios") {
+          await ReactNativeMediapipePose.requestCameraPermissions();
+        }
+      } catch (e) {
+        console.log("Error requesting camera permissions via package:", e);
+      }
+    };
+    if (isActive) {
+      requestPermission();
+    }
+  }, [isActive]);
 
-  const handleQuickPoseUpdate = (event: any) => {
-    const { results, feedbacks } = event.nativeEvent;
-    if (!results) return;
+  const handlePoseDetected = (event: { nativeEvent: PoseDetectionResult }) => {
+    const { landmarks } = event.nativeEvent;
+    if (!landmarks || landmarks.length === 0) return;
+
+    // Determine the side of the body with better visibility/confidence
+    // Left landmarks: shoulder (11), elbow (13), wrist (15), hip (23), knee (25), ankle (27)
+    // Right landmarks: shoulder (12), elbow (14), wrist (16), hip (24), knee (26), ankle (28)
+    const leftArmVis =
+      (landmarks[11]?.visibility || 0) +
+      (landmarks[13]?.visibility || 0) +
+      (landmarks[15]?.visibility || 0);
+    const rightArmVis =
+      (landmarks[12]?.visibility || 0) +
+      (landmarks[14]?.visibility || 0) +
+      (landmarks[16]?.visibility || 0);
+    const armSide = leftArmVis >= rightArmVis ? "left" : "right";
+
+    const shoulder = landmarks[armSide === "left" ? 11 : 12];
+    const elbow = landmarks[armSide === "left" ? 13 : 14];
+    const wrist = landmarks[armSide === "left" ? 15 : 16];
+    const hip = landmarks[armSide === "left" ? 23 : 24];
+
+    const leftLegVis =
+      (landmarks[23]?.visibility || 0) +
+      (landmarks[25]?.visibility || 0) +
+      (landmarks[27]?.visibility || 0);
+    const rightLegVis =
+      (landmarks[24]?.visibility || 0) +
+      (landmarks[26]?.visibility || 0) +
+      (landmarks[28]?.visibility || 0);
+    const legSide = leftLegVis >= rightLegVis ? "left" : "right";
+
+    const sHip = landmarks[legSide === "left" ? 23 : 24];
+    const sKnee = landmarks[legSide === "left" ? 25 : 26];
+    const sAnkle = landmarks[legSide === "left" ? 27 : 28];
+    const sShoulder = landmarks[legSide === "left" ? 11 : 12];
 
     let kneeAngle: number | string = "--";
     let backAngle: number | string = "--";
     let elbowAngle: number | string = "--";
-    let reps = 0;
     let feedback: string[] = [];
     let isFormCorrect = true;
 
-    // 1. Extract rangeOfMotion angles
-    const kneeAngleVal = results["rangeOfMotion.knee"];
-    if (kneeAngleVal !== undefined) {
-      kneeAngle = Math.round(kneeAngleVal);
+    // 1. Calculate angles if landmarks are visible (confidence > 0.5)
+    if (
+      shoulder &&
+      elbow &&
+      wrist &&
+      shoulder.visibility > 0.5 &&
+      elbow.visibility > 0.5 &&
+      wrist.visibility > 0.5
+    ) {
+      elbowAngle = Math.round(calculateAngle(shoulder, elbow, wrist));
     }
 
-    const backAngleVal = results["rangeOfMotion.back"];
-    if (backAngleVal !== undefined) {
-      backAngle = Math.round(backAngleVal);
+    if (
+      sHip &&
+      sKnee &&
+      sAnkle &&
+      sHip.visibility > 0.5 &&
+      sKnee.visibility > 0.5 &&
+      sAnkle.visibility > 0.5
+    ) {
+      kneeAngle = Math.round(calculateAngle(sHip, sKnee, sAnkle));
     }
 
-    const elbowAngleVal = results["rangeOfMotion.elbow"];
-    if (elbowAngleVal !== undefined) {
-      elbowAngle = Math.round(elbowAngleVal);
+    const chosenHip = exerciseMode === "squat" ? sHip : hip;
+    const chosenShoulder = exerciseMode === "squat" ? sShoulder : shoulder;
+    if (
+      chosenHip &&
+      chosenShoulder &&
+      chosenHip.visibility > 0.5 &&
+      chosenShoulder.visibility > 0.5
+    ) {
+      // Calculate back lean relative to vertical line
+      const dx = chosenShoulder.x - chosenHip.x;
+      const dy = chosenShoulder.y - chosenHip.y;
+      const rad = Math.atan2(Math.abs(dx), Math.abs(dy));
+      const angleFromVertical = (rad * 180.0) / Math.PI;
+      backAngle = Math.round(180 - angleFromVertical);
     }
 
-    // 2. Count reps using the threshold counter
-    const activeFeat = exerciseMode === "squat" ? "fitness.squats" : "fitness.bicepCurls";
-    const score = results[activeFeat];
-    if (score !== undefined) {
-      const counterState = thresholdCounterRef.current.count(score);
-      reps = counterState.count;
-    }
+    // 2. State-Machine Rep Counter and Real-time Coaching Feedback
+    if (exerciseMode === "curl") {
+      if (typeof elbowAngle === "number") {
+        if (elbowAngle < 60) {
+          feedback.push("Good squeeze at top!");
+          if (repStateRef.current === "up") {
+            repStateRef.current = "down";
+          }
+        } else {
+          feedback.push("Curl: Lift weights upward.");
+          if (repStateRef.current === "down" && elbowAngle > 130) {
+            repStateRef.current = "up";
+            repsRef.current += 1;
+          }
+        }
+      }
 
-    // 3. Extract coaching feedback alerts
-    const activeFeedback = feedbacks[activeFeat];
-    if (activeFeedback) {
-      feedback = [activeFeedback];
-      isFormCorrect = !activeFeedback.toLowerCase().includes("avoid") &&
-                      !activeFeedback.toLowerCase().includes("keep") &&
-                      !activeFeedback.toLowerCase().includes("lower") &&
-                      !activeFeedback.toLowerCase().includes("lean");
+      if (typeof backAngle === "number" && backAngle < 155) {
+        feedback.push("Avoid leaning back.");
+        isFormCorrect = false;
+      }
+
+      if (shoulder && elbow && hip) {
+        const shoulderToHipX = Math.abs(shoulder.x - hip.x);
+        const elbowToHipX = Math.abs(elbow.x - hip.x);
+        if (elbowToHipX > shoulderToHipX * 1.5) {
+          feedback.push("Keep elbows tucked to your side.");
+          isFormCorrect = false;
+        }
+      }
+    } else if (exerciseMode === "squat") {
+      if (typeof kneeAngle === "number") {
+        if (kneeAngle < 110) {
+          feedback.push("Good depth!");
+          if (repStateRef.current === "up") {
+            repStateRef.current = "down";
+          }
+        } else {
+          feedback.push("Squat: Lower your hips.");
+          if (repStateRef.current === "down" && kneeAngle > 150) {
+            repStateRef.current = "up";
+            repsRef.current += 1;
+          }
+        }
+      }
+
+      if (typeof backAngle === "number" && backAngle < 145) {
+        feedback.push("Keep your back straight.");
+        isFormCorrect = false;
+      }
+
+      if (landmarks[25] && landmarks[26] && landmarks[23] && landmarks[24]) {
+        const kneeDist = Math.abs(landmarks[25].x - landmarks[26].x);
+        const hipDist = Math.abs(landmarks[23].x - landmarks[24].x);
+        if (kneeDist < hipDist * 0.8) {
+          feedback.push("Knees caving in — push them out.");
+          isFormCorrect = false;
+        }
+      }
     }
 
     onPoseUpdate({
-      reps,
+      reps: repsRef.current,
       kneeAngle,
       backAngle,
       elbowAngle,
@@ -108,12 +237,14 @@ export const QuickPoseCameraWrapper: React.FC<QuickPoseCameraWrapperProps> = ({
   }
 
   return (
-    <QuickPoseView
-      sdkKey={process.env.EXPO_PUBLIC_QUICKPOSE_SDK_KEY || "free-trial"}
-      features={activeFeatures}
-      useFrontCamera={true}
+    <ReactNativeMediapipePoseView
       style={style || styles.camera}
-      onUpdate={handleQuickPoseUpdate}
+      cameraType="front"
+      enablePoseDetection={true}
+      enablePoseDataStreaming={true}
+      targetFPS={30}
+      autoAdjustFPS={true}
+      onPoseDetected={handlePoseDetected}
     />
   );
 };
