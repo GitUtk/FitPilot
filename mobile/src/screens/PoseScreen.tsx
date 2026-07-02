@@ -9,107 +9,11 @@ import {
   ActivityIndicator,
   StatusBar,
 } from "react-native";
-import { Camera, CameraView } from "expo-camera";
-import { WebView } from "react-native-webview";
-import { MOBILE_POSE_HTML } from "../utils/PoseHtml";
+import { Camera } from "expo-camera";
+import { QuickPoseCameraWrapper, PoseUpdateData } from "./QuickPoseCameraWrapper";
 import { COLORS, SPACING, SIZES } from "../styles/theme";
 
 type ExerciseMode = "squat" | "curl";
-
-const SkeletonOverlay: React.FC<{ points: any; isFormCorrect: boolean }> = ({ points, isFormCorrect }) => {
-  const [layout, setLayout] = useState({ width: 0, height: 0 });
-
-  if (!points) return null;
-
-  const connections = [
-    ["left_shoulder", "right_shoulder"],
-    ["left_shoulder", "left_elbow"],
-    ["left_elbow", "left_wrist"],
-    ["right_shoulder", "right_elbow"],
-    ["right_elbow", "right_wrist"],
-    ["left_shoulder", "left_hip"],
-    ["right_shoulder", "right_hip"],
-    ["left_hip", "right_hip"],
-    ["left_hip", "left_knee"],
-    ["left_knee", "left_ankle"],
-    ["right_hip", "right_knee"],
-    ["right_knee", "right_ankle"],
-  ];
-
-  const color = isFormCorrect ? "#10B981" : "#EF4444";
-
-  return (
-    <View
-      style={StyleSheet.absoluteFillObject}
-      onLayout={(e) =>
-        setLayout({
-          width: e.nativeEvent.layout.width,
-          height: e.nativeEvent.layout.height,
-        })
-      }
-    >
-      {layout.width > 0 && layout.height > 0 && (
-        <>
-          {connections.map(([p1, p2], idx) => {
-            const pt1 = points[p1];
-            const pt2 = points[p2];
-            if (!pt1 || !pt2) return null;
-
-            const x1 = pt1.x * layout.width;
-            const y1 = pt1.y * layout.height;
-            const x2 = pt2.x * layout.width;
-            const y2 = pt2.y * layout.height;
-
-            const dx = x2 - x1;
-            const dy = y2 - y1;
-            const length = Math.sqrt(dx * dx + dy * dy);
-            const angle = Math.atan2(dy, dx);
-
-            const cx = (x1 + x2) / 2;
-            const cy = (y1 + y2) / 2;
-
-            return (
-              <View
-                key={`bone-${idx}`}
-                style={{
-                  position: "absolute",
-                  left: cx - length / 2,
-                  top: cy - 2,
-                  width: length,
-                  height: 4,
-                  backgroundColor: color,
-                  transform: [{ rotate: `${angle}rad` }],
-                  borderRadius: 2,
-                }}
-              />
-            );
-          })}
-
-          {Object.entries(points).map(([key, pt]: any) => {
-            const x = pt.x * layout.width;
-            const y = pt.y * layout.height;
-            return (
-              <View
-                key={`joint-${key}`}
-                style={{
-                  position: "absolute",
-                  left: x - 6,
-                  top: y - 6,
-                  width: 12,
-                  height: 12,
-                  borderRadius: 6,
-                  backgroundColor: color,
-                  borderWidth: 2,
-                  borderColor: "#FFFFFF",
-                }}
-              />
-            );
-          })}
-        </>
-      )}
-    </View>
-  );
-};
 
 export const PoseScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
@@ -120,59 +24,18 @@ export const PoseScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [elbowAngle, setElbowAngle] = useState<number | string>("--");
   const [feedback, setFeedback] = useState<string[]>([]);
   const [isFormCorrect, setIsFormCorrect] = useState(true);
-  const [sdkLoaded, setSdkLoaded] = useState(false);
-  const [isModelReady, setIsModelReady] = useState(false);
-  const [isWasmLoaded, setIsWasmLoaded] = useState(false);
-  const [simulatedPoints, setSimulatedPoints] = useState<any>(null);
+  const [reps, setReps] = useState<number>(0);
 
-  const videoRef = useRef<any>(null);
-  const canvasRef = useRef<any>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const poseRef = useRef<any>(null);
   const activeRef = useRef(false);
-  const exerciseModeRef = useRef<ExerciseMode>("squat");
-  const animationFrameRef = useRef<number | null>(null);
-  const simulationIntervalRef = useRef<any>(null);
-  const webViewRef = useRef<any>(null);
 
+  // Reset stats when switching exercises
   useEffect(() => {
-    if (Platform.OS !== "web" && webViewRef.current) {
-      webViewRef.current.postMessage(
-        JSON.stringify({
-          type: "setup",
-          mode: exerciseMode,
-          isActive: isActive,
-        })
-      );
-    }
-  }, [exerciseMode, isActive]);
-
-  const handleWebViewMessage = (event: any) => {
-    try {
-      const data = JSON.parse(event.nativeEvent.data);
-      if (data.type === "pose") {
-        setKneeAngle(data.kneeAngle);
-        setBackAngle(data.backAngle);
-        setElbowAngle(data.elbowAngle);
-        setFeedback(data.feedback);
-        setIsFormCorrect(data.isFormCorrect);
-      } else if (data.type === "log") {
-        console.log("WebView Log:", data.message);
-      }
-    } catch (e) {
-      console.log("Error parsing WebView message:", e);
-    }
-  };
-
-  useEffect(() => {
-    exerciseModeRef.current = exerciseMode;
-    if (isActive) {
-      setKneeAngle("--");
-      setBackAngle("--");
-      setElbowAngle("--");
-      setFeedback([]);
-      setIsFormCorrect(true);
-    }
+    setReps(0);
+    setKneeAngle("--");
+    setBackAngle("--");
+    setElbowAngle("--");
+    setFeedback([]);
+    setIsFormCorrect(true);
   }, [exerciseMode]);
 
   useEffect(() => {
@@ -180,15 +43,13 @@ export const PoseScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       if (Platform.OS !== "web") {
         try {
           const { status: cameraStatus } = await Camera.requestCameraPermissionsAsync();
-          const { status: audioStatus } = await Camera.requestMicrophonePermissionsAsync();
-          setHasPermission(cameraStatus === "granted" && audioStatus === "granted");
+          setHasPermission(cameraStatus === "granted");
         } catch (e) {
-          console.log("Error requesting camera/microphone permissions:", e);
+          console.log("Error requesting camera permissions:", e);
           setHasPermission(false);
         }
       } else {
         setHasPermission(true);
-        loadMediaPipe();
       }
     };
     getPermissions();
@@ -198,312 +59,25 @@ export const PoseScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     };
   }, []);
 
-  const loadMediaPipe = async () => {
-    if (Platform.OS !== "web") return;
-    try {
-      await loadScript("https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js");
-      await loadScript("https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js");
-      setSdkLoaded(true);
-      initializePoseModel();
-    } catch {}
-  };
-
-  const loadScript = (src: string): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      const existing = document.querySelector(`script[src="${src}"]`);
-      if (existing) {
-        resolve();
-        return;
-      }
-      const script = document.createElement("script");
-      script.src = src;
-      script.async = true;
-      script.onload = () => resolve();
-      script.onerror = () => reject();
-      document.head.appendChild(script);
-    });
-  };
-
-  const initializePoseModel = () => {
-    const win = window as any;
-    if (!win.Pose) return;
-
-    const pose = new win.Pose({
-      locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`,
-    });
-
-    pose.setOptions({
-      modelComplexity: 1,
-      smoothLandmarks: true,
-      minDetectionConfidence: 0.5,
-      minTrackingConfidence: 0.5,
-    });
-
-    pose.onResults(onPoseResults);
-    poseRef.current = pose;
-    setIsModelReady(true);
-  };
-
-  const calculateAngle = (a: any, b: any, c: any): number => {
-    const ba = { x: a.x - b.x, y: a.y - b.y };
-    const bc = { x: c.x - b.x, y: c.y - b.y };
-    const dotProd = ba.x * bc.x + ba.y * bc.y;
-    const magBa = Math.sqrt(ba.x * ba.x + ba.y * ba.y);
-    const magBc = Math.sqrt(bc.x * bc.x + bc.y * bc.y);
-    if (magBa === 0 || magBc === 0) return 0.0;
-    let cosAngle = dotProd / (magBa * magBc);
-    cosAngle = Math.max(-1.0, Math.min(1.0, cosAngle));
-    return Math.round(Math.acos(cosAngle) * (180 / Math.PI) * 10) / 10;
-  };
-
-  const processForm = (points: any, mode: ExerciseMode) => {
-    const alerts: string[] = [];
-    let correct = true;
-
-    const knee = calculateAngle(points.left_hip, points.left_knee, points.left_ankle);
-    const back = calculateAngle(points.left_shoulder, points.left_hip, points.left_knee);
-    const elbow = calculateAngle(points.left_shoulder, points.left_elbow, points.left_wrist);
-
-    setKneeAngle(knee);
-    setBackAngle(back);
-    setElbowAngle(elbow);
-
-    if (mode === "squat") {
-      const hipWidth = Math.abs(points.left_hip.x - points.right_hip.x);
-      const kneeWidth = Math.abs(points.left_knee.x - points.right_knee.x);
-      const isCaving = kneeWidth < hipWidth * 0.92;
-
-      if (isCaving) {
-        alerts.push("Knees caving in — push them out.");
-        correct = false;
-      }
-      if (back < 145.0) {
-        alerts.push("Keep your back straight.");
-        correct = false;
-      }
-      if (correct) {
-        if (knee < 100.0) {
-          alerts.push("Good depth!");
-        } else {
-          alerts.push("Squat: Lower your hips.");
-        }
-      }
-    } else {
-      const leftElbowDrift = Math.abs(points.left_elbow.x - points.left_shoulder.x);
-      const isDrifting = leftElbowDrift > 0.12;
-
-      if (isDrifting) {
-        alerts.push("Keep elbows tucked to your side.");
-        correct = false;
-      }
-      if (back < 160.0) {
-        alerts.push("Avoid leaning back.");
-        correct = false;
-      }
-      if (correct) {
-        if (elbow < 60.0) {
-          alerts.push("Good squeeze at top!");
-        } else {
-          alerts.push("Curl: Lift weights upward.");
-        }
-      }
-    }
-
-    setFeedback(alerts);
-    setIsFormCorrect(correct);
-  };
-
-  const onPoseResults = (results: any) => {
-    if (!activeRef.current) return;
-    if (!isWasmLoaded) {
-      setIsWasmLoaded(true);
-    }
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    if (results.poseLandmarks) {
-      const lms = results.poseLandmarks;
-      const points = {
-        left_shoulder: lms[11],
-        right_shoulder: lms[12],
-        left_elbow: lms[13],
-        right_elbow: lms[14],
-        left_wrist: lms[15],
-        right_wrist: lms[16],
-        left_hip: lms[23],
-        right_hip: lms[24],
-        left_knee: lms[25],
-        right_knee: lms[26],
-        left_ankle: lms[27],
-        right_ankle: lms[28],
-      };
-
-      processForm(points, exerciseModeRef.current);
-      drawSkeletonOnCanvas(ctx, points);
-    }
-  };
-
-  const drawSkeletonOnCanvas = (ctx: any, points: any) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const videoWidth = videoRef.current ? videoRef.current.videoWidth : 640;
-    const videoHeight = videoRef.current ? videoRef.current.videoHeight : 480;
-    const containerWidth = canvas.clientWidth;
-    const containerHeight = canvas.clientHeight;
-
-    if (canvas.width !== containerWidth || canvas.height !== containerHeight) {
-      canvas.width = containerWidth;
-      canvas.height = containerHeight;
-    }
-
-    const arVideo = videoWidth / videoHeight;
-    const arContainer = containerWidth / containerHeight;
-
-    let scale = 1;
-    let offsetX = 0;
-    let offsetY = 0;
-
-    if (arContainer < arVideo) {
-      scale = containerHeight / videoHeight;
-      offsetX = (containerWidth - videoWidth * scale) / 2;
-    } else {
-      scale = containerWidth / videoWidth;
-      offsetY = (containerHeight - videoHeight * scale) / 2;
-    }
-
-    ctx.fillStyle = isFormCorrect ? "#10B981" : "#EF4444";
-    ctx.strokeStyle = isFormCorrect ? "#10B981" : "#EF4444";
-    ctx.lineWidth = 4;
-
-    const connections = [
-      ["left_shoulder", "right_shoulder"],
-      ["left_shoulder", "left_elbow"],
-      ["left_elbow", "left_wrist"],
-      ["right_shoulder", "right_elbow"],
-      ["right_elbow", "right_wrist"],
-      ["left_shoulder", "left_hip"],
-      ["right_shoulder", "right_hip"],
-      ["left_hip", "right_hip"],
-      ["left_hip", "left_knee"],
-      ["left_knee", "left_ankle"],
-      ["right_hip", "right_knee"],
-      ["right_knee", "right_ankle"],
-    ];
-
-    const screenPoints: any = {};
-    for (const [key, pt] of Object.entries(points)) {
-      const point = pt as any;
-      screenPoints[key] = {
-        x: point.x * videoWidth * scale + offsetX,
-        y: point.y * videoHeight * scale + offsetY,
-      };
-    }
-
-    connections.forEach(([p1, p2]) => {
-      const pt1 = screenPoints[p1];
-      const pt2 = screenPoints[p2];
-      if (pt1 && pt2) {
-        ctx.beginPath();
-        ctx.moveTo(pt1.x, pt1.y);
-        ctx.lineTo(pt2.x, pt2.y);
-        ctx.stroke();
-      }
-    });
-
-    for (const pt of Object.values(screenPoints)) {
-      const point = pt as any;
-      ctx.beginPath();
-      ctx.arc(point.x, point.y, 6, 0, 2 * Math.PI);
-      ctx.fill();
-    }
+  const handlePoseUpdate = (data: PoseUpdateData) => {
+    setReps(data.reps);
+    setKneeAngle(data.kneeAngle);
+    setBackAngle(data.backAngle);
+    setElbowAngle(data.elbowAngle);
+    setFeedback(data.feedback);
+    setIsFormCorrect(data.isFormCorrect);
   };
 
   const startSession = async () => {
     setIsActive(true);
     activeRef.current = true;
-
-    if (Platform.OS === "web") {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "user" },
-          audio: false,
-        });
-        streamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.play();
-        }
-        processWebFrame();
-      } catch {
-        setIsActive(false);
-        activeRef.current = false;
-      }
-    } else {
-      if (webViewRef.current) {
-        webViewRef.current.postMessage(
-          JSON.stringify({
-            type: "setup",
-            mode: exerciseMode,
-            isActive: true,
-          })
-        );
-      }
-    }
-  };
-
-  const processWebFrame = async () => {
-    if (!activeRef.current) return;
-    if (videoRef.current && poseRef.current && videoRef.current.readyState >= 2) {
-      try {
-        await poseRef.current.send({ image: videoRef.current });
-      } catch {}
-    }
-    animationFrameRef.current = requestAnimationFrame(processWebFrame);
+    setReps(0);
   };
 
   const stopSession = () => {
     setIsActive(false);
     activeRef.current = false;
-    setIsWasmLoaded(false);
-    setSimulatedPoints(null);
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-      animationFrameRef.current = null;
-    }
-    if (simulationIntervalRef.current) {
-      clearInterval(simulationIntervalRef.current);
-      simulationIntervalRef.current = null;
-    }
-
-    if (Platform.OS === "web") {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-        streamRef.current = null;
-      }
-      if (videoRef.current) {
-        videoRef.current.srcObject = null;
-      }
-      if (canvasRef.current) {
-        const ctx = canvasRef.current.getContext("2d");
-        ctx?.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-      }
-    } else {
-      if (webViewRef.current) {
-        webViewRef.current.postMessage(
-          JSON.stringify({
-            type: "setup",
-            mode: exerciseMode,
-            isActive: false,
-          })
-        );
-      }
-    }
-
+    setReps(0);
     setKneeAngle("--");
     setBackAngle("--");
     setElbowAngle("--");
@@ -531,37 +105,12 @@ export const PoseScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.cameraViewport}>
-        {Platform.OS === "web" ? (
-          <View style={styles.fullscreenWebCamera}>
-            <video
-              ref={videoRef}
-              style={styles.webVideoElement}
-              playsInline
-              muted
-            />
-            <canvas
-              ref={canvasRef}
-              style={styles.webCanvasOverlay}
-            />
-          </View>
-        ) : (
-          <View style={styles.fullscreenNativeCameraContainer}>
-            <WebView
-              ref={webViewRef}
-              originWhitelist={["*"]}
-              source={{ html: MOBILE_POSE_HTML }}
-              style={styles.fullscreenNativeCamera}
-              javaScriptEnabled={true}
-              domStorageEnabled={true}
-              allowsInlineMediaPlayback={true}
-              mediaPlaybackRequiresUserAction={false}
-              onPermissionRequest={(event) => {
-                event.grant(event.resources);
-              }}
-              onMessage={handleWebViewMessage}
-            />
-          </View>
-        )}
+        <QuickPoseCameraWrapper
+          isActive={isActive}
+          exerciseMode={exerciseMode}
+          onPoseUpdate={handlePoseUpdate}
+          style={styles.fullscreenNativeCamera}
+        />
 
         <View style={styles.headerOverlay}>
           <TouchableOpacity onPress={() => { stopSession(); navigation.navigate("Workouts"); }} style={styles.backCircle}>
@@ -588,21 +137,6 @@ export const PoseScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           <View style={styles.invisiblePlaceholder} />
         </View>
 
-        {Platform.OS === "web" && isActive && !isWasmLoaded && (
-          <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color="#FFFFFF" style={styles.spinner} />
-            <Text style={styles.loadingOverlayText}>
-              Loading WASM Model...{"\n"}Please wait a moment.
-            </Text>
-          </View>
-        )}
-
-        {Platform.OS !== "web" && isActive && (
-          <View style={styles.simulatedIndicator}>
-            <Text style={styles.simulatedText}>AI Real-Time Scan</Text>
-          </View>
-        )}
-
         <View style={styles.hudOverlay}>
           <View style={styles.statsPanel}>
             <View style={styles.statPill}>
@@ -616,6 +150,10 @@ export const PoseScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             <View style={styles.statPill}>
               <Text style={styles.statLabel}>ELBOW</Text>
               <Text style={styles.statVal}>{elbowAngle}°</Text>
+            </View>
+            <View style={[styles.statPill, { backgroundColor: "rgba(16, 185, 129, 0.12)", borderColor: "rgba(16, 185, 129, 0.35)" }]}>
+              <Text style={[styles.statLabel, { color: "#10B981" }]}>REPS</Text>
+              <Text style={[styles.statVal, { color: "#10B981", fontWeight: "700" }]}>{reps}</Text>
             </View>
           </View>
 
@@ -635,7 +173,6 @@ export const PoseScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           <TouchableOpacity
             style={[styles.sessionButton, isActive ? styles.stopButton : styles.startButton]}
             onPress={isActive ? stopSession : startSession}
-            disabled={Platform.OS === "web" && !isModelReady}
           >
             <Text style={[styles.sessionButtonText, isActive && { color: "#FFFFFF" }]}>
               {isActive ? "Stop Scanner" : "Start Real-Time Check"}
@@ -807,18 +344,23 @@ const styles = StyleSheet.create({
   },
   statPill: {
     flex: 1,
-    backgroundColor: "rgba(15, 23, 42, 0.65)",
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
     borderRadius: SIZES.radiusSm,
     paddingVertical: SPACING.sm,
     marginHorizontal: 4,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.15)",
+    borderColor: "rgba(255, 255, 255, 0.18)",
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 2,
   },
   statLabel: {
     fontSize: 9,
     fontWeight: "600",
-    color: "rgba(255, 255, 255, 0.6)",
+    color: "rgba(255, 255, 255, 0.5)",
     letterSpacing: 0.5,
     marginBottom: 2,
   },
@@ -828,29 +370,34 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
   feedbackPanel: {
-    backgroundColor: "rgba(15, 23, 42, 0.65)",
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
     borderRadius: SIZES.radiusSm,
     padding: SPACING.md,
     marginBottom: SPACING.md,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.15)",
+    borderColor: "rgba(255, 255, 255, 0.18)",
     minHeight: 70,
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 2,
   },
   feedbackPanelError: {
-    backgroundColor: "rgba(239, 68, 68, 0.2)",
-    borderColor: "rgba(239, 68, 68, 0.5)",
+    backgroundColor: "rgba(239, 68, 68, 0.12)",
+    borderColor: "rgba(239, 68, 68, 0.35)",
   },
   panelTitle: {
     fontSize: 11,
     fontWeight: "600",
-    color: "rgba(255, 255, 255, 0.5)",
+    color: "rgba(255, 255, 255, 0.4)",
     textTransform: "uppercase",
     letterSpacing: 0.5,
     marginBottom: 6,
   },
   noFeedback: {
     fontSize: 13,
-    color: "rgba(255, 255, 255, 0.7)",
+    color: "rgba(255, 255, 255, 0.6)",
     fontStyle: "italic",
   },
   feedbackLine: {
@@ -868,19 +415,43 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowRadius: 8,
+    elevation: 4,
   },
   startButton: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    borderWidth: 1.5,
+    borderColor: "rgba(255, 255, 255, 0.35)",
   },
   stopButton: {
-    backgroundColor: "#EF4444",
+    backgroundColor: "rgba(239, 68, 68, 0.35)",
+    borderWidth: 1.5,
+    borderColor: "rgba(239, 68, 68, 0.55)",
   },
   sessionButtonText: {
-    color: "#0F172A",
+    color: "#FFFFFF",
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "700",
+    letterSpacing: 0.5,
+  },
+  webFallbackText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "500",
+    textAlign: "center",
+    padding: SPACING.md,
+  },
+  cameraPlaceholder: {
+    flex: 1,
+    backgroundColor: "#111111",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  placeholderText: {
+    color: "rgba(255, 255, 255, 0.4)",
+    fontSize: 14,
+    fontWeight: "500",
   },
 });
