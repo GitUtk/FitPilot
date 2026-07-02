@@ -12,7 +12,6 @@ import {
   Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Pedometer } from "expo-sensors";
 import { Camera } from "expo-camera";
 import { useAuth } from "../context/AuthContext";
 import { apiService } from "../services/api";
@@ -37,15 +36,10 @@ export const DashboardScreen: React.FC<{ navigation: any }> = ({ navigation }) =
   const [adaptationText, setAdaptationText] = useState("");
   const [loadingAdaptation, setLoadingAdaptation] = useState(false);
 
-  const [isPedometerAvailable, setIsPedometerAvailable] = useState("checking");
-  const [pastStepCount, setPastStepCount] = useState(0);
-  const [currentStepCount, setCurrentStepCount] = useState(0);
-
   useEffect(() => {
     fetchData();
 
-    let subscription: any;
-    const requestAndSubscribe = async () => {
+    const requestPermissions = async () => {
       if (Platform.OS !== "web") {
         try {
           await Camera.requestCameraPermissionsAsync();
@@ -53,41 +47,10 @@ export const DashboardScreen: React.FC<{ navigation: any }> = ({ navigation }) =
         } catch (e) {
           console.log("Error requesting camera/audio permissions:", e);
         }
-        try {
-          await Pedometer.requestPermissionsAsync();
-        } catch (e) {
-          console.log("Error requesting pedometer permission:", e);
-        }
-      }
-
-      try {
-        const isAvailable = await Pedometer.isAvailableAsync();
-        setIsPedometerAvailable(String(isAvailable));
-
-        if (isAvailable) {
-          const start = new Date();
-          start.setHours(0, 0, 0, 0);
-          const end = new Date();
-          const result = await Pedometer.getStepCountAsync(start, end);
-          if (result) {
-            setPastStepCount(result.steps);
-          }
-          subscription = Pedometer.watchStepCount((result) => {
-            setCurrentStepCount(result.steps);
-          });
-        }
-      } catch (e) {
-        setIsPedometerAvailable("false");
       }
     };
 
-    requestAndSubscribe();
-
-    return () => {
-      if (subscription) {
-        subscription.remove();
-      }
-    };
+    requestPermissions();
   }, []);
 
   const fetchData = async () => {
@@ -149,11 +112,6 @@ export const DashboardScreen: React.FC<{ navigation: any }> = ({ navigation }) =
   };
 
   const activeMinutes = workoutStats.total_sets * 2;
-  const targetSteps = 10000;
-  const stepsCount = isPedometerAvailable === "true" ? pastStepCount + currentStepCount : 8432;
-  const progressPercent = Math.min((stepsCount / targetSteps) * 100, 100);
-  const distanceKm = (stepsCount * 0.00075).toFixed(1);
-  const stepCalories = Math.round(stepsCount * 0.04);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -181,48 +139,7 @@ export const DashboardScreen: React.FC<{ navigation: any }> = ({ navigation }) =
           </Text>
         </View>
 
-        <View style={styles.progressSection}>
-          <View style={styles.progressHeaderRow}>
-            <View style={styles.pedometerTitleGroup}>
-              <Ionicons name="walk-outline" size={18} color={COLORS.primary} style={{ marginRight: 6 }} />
-              <Text style={styles.progressTitle}>Step Tracker</Text>
-            </View>
-            {isPedometerAvailable === "true" && (
-              <View style={styles.liveIndicator}>
-                <View style={styles.dot} />
-                <Text style={styles.liveLabel}>LIVE</Text>
-              </View>
-            )}
-          </View>
 
-          <View style={styles.stepsStatsRow}>
-            <View>
-              <Text style={styles.stepsCountText}>{stepsCount.toLocaleString()}</Text>
-              <Text style={styles.stepsTargetText}>Goal: {targetSteps.toLocaleString()} steps</Text>
-            </View>
-            <View style={styles.progressPercentageBadge}>
-              <Text style={styles.progressPercentageText}>{Math.round(progressPercent)}%</Text>
-            </View>
-          </View>
-
-          <View style={styles.progressBarBackground}>
-            <View style={[styles.progressBarFill, { width: `${progressPercent}%` }]} />
-          </View>
-
-          <View style={styles.extraStatsRow}>
-            <View style={styles.extraStatItem}>
-              <Ionicons name="map-outline" size={14} color={COLORS.textSecondary} />
-              <Text style={styles.extraStatValue}>{distanceKm} km</Text>
-              <Text style={styles.extraStatLabel}>Distance</Text>
-            </View>
-            <View style={styles.extraStatDivider} />
-            <View style={styles.extraStatItem}>
-              <Ionicons name="flame-outline" size={14} color={COLORS.textSecondary} />
-              <Text style={styles.extraStatValue}>{stepCalories} kcal</Text>
-              <Text style={styles.extraStatLabel}>Active Burn</Text>
-            </View>
-          </View>
-        </View>
 
         <View style={styles.adaptationSection}>
           <View style={styles.adaptationHeader}>

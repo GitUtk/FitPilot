@@ -10,6 +10,8 @@ import {
   StatusBar,
 } from "react-native";
 import { Camera, CameraView } from "expo-camera";
+import { WebView } from "react-native-webview";
+import { MOBILE_POSE_HTML } from "../utils/PoseHtml";
 import { COLORS, SPACING, SIZES } from "../styles/theme";
 
 type ExerciseMode = "squat" | "curl";
@@ -131,6 +133,36 @@ export const PoseScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const exerciseModeRef = useRef<ExerciseMode>("squat");
   const animationFrameRef = useRef<number | null>(null);
   const simulationIntervalRef = useRef<any>(null);
+  const webViewRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (Platform.OS !== "web" && webViewRef.current) {
+      webViewRef.current.postMessage(
+        JSON.stringify({
+          type: "setup",
+          mode: exerciseMode,
+          isActive: isActive,
+        })
+      );
+    }
+  }, [exerciseMode, isActive]);
+
+  const handleWebViewMessage = (event: any) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
+      if (data.type === "pose") {
+        setKneeAngle(data.kneeAngle);
+        setBackAngle(data.backAngle);
+        setElbowAngle(data.elbowAngle);
+        setFeedback(data.feedback);
+        setIsFormCorrect(data.isFormCorrect);
+      } else if (data.type === "log") {
+        console.log("WebView Log:", data.message);
+      }
+    } catch (e) {
+      console.log("Error parsing WebView message:", e);
+    }
+  };
 
   useEffect(() => {
     exerciseModeRef.current = exerciseMode;
@@ -412,110 +444,15 @@ export const PoseScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         activeRef.current = false;
       }
     } else {
-      let step = 0;
-      simulationIntervalRef.current = setInterval(() => {
-        step += 0.08;
-        const currentMode = exerciseModeRef.current;
-        const cycle = Math.sin(step);
-        let correct = true;
-        const alerts: string[] = [];
-
-        // Base points in percentage (0 to 1)
-        const points: any = {
-          left_shoulder: { x: 0.35, y: 0.25 },
-          right_shoulder: { x: 0.65, y: 0.25 },
-          left_elbow: { x: 0.28, y: 0.42 },
-          right_elbow: { x: 0.72, y: 0.42 },
-          left_wrist: { x: 0.28, y: 0.58 },
-          right_wrist: { x: 0.72, y: 0.58 },
-          left_hip: { x: 0.40, y: 0.55 },
-          right_hip: { x: 0.60, y: 0.55 },
-          left_knee: { x: 0.40, y: 0.72 },
-          right_knee: { x: 0.60, y: 0.72 },
-          left_ankle: { x: 0.40, y: 0.88 },
-          right_ankle: { x: 0.60, y: 0.88 },
-        };
-
-        if (currentMode === "squat") {
-          const knee = Math.round(130 + 40 * cycle);
-          const back = cycle < -0.5 ? Math.round(135 + 5 * cycle) : Math.round(155 + 5 * cycle);
-          const caveToggle = cycle > 0.6;
-
-          setKneeAngle(knee);
-          setBackAngle(back);
-          setElbowAngle("--");
-
-          const depth = (1 - cycle) / 2; // 0 to 1
-          points.left_hip.y = 0.55 + 0.15 * depth;
-          points.right_hip.y = 0.55 + 0.15 * depth;
-          points.left_knee.y = 0.72 + 0.05 * depth;
-          points.right_knee.y = 0.72 + 0.05 * depth;
-          points.left_shoulder.y = 0.25 + 0.18 * depth;
-          points.right_shoulder.y = 0.25 + 0.18 * depth;
-          points.left_elbow.y = 0.42 + 0.18 * depth;
-          points.right_elbow.y = 0.42 + 0.18 * depth;
-          points.left_wrist.y = 0.58 + 0.18 * depth;
-          points.right_wrist.y = 0.58 + 0.18 * depth;
-
-          if (caveToggle) {
-            alerts.push("Knees caving in — push them out.");
-            correct = false;
-            points.left_knee.x = 0.45;
-            points.right_knee.x = 0.55;
-          }
-          if (back < 145) {
-            alerts.push("Keep your back straight.");
-            correct = false;
-            points.left_shoulder.x = 0.30;
-            points.right_shoulder.x = 0.60;
-          }
-          if (correct) {
-            if (knee < 100) {
-              alerts.push("Good depth!");
-            } else {
-              alerts.push("Squat: Lower your hips.");
-            }
-          }
-        } else {
-          const elbow = Math.round(100 + 60 * cycle);
-          const back = cycle < -0.6 ? Math.round(150 + 5 * cycle) : Math.round(170 + 5 * cycle);
-          const driftToggle = cycle > 0.7;
-
-          setKneeAngle("--");
-          setBackAngle(back);
-          setElbowAngle(elbow);
-
-          const curlProgress = (1 - cycle) / 2; // 0 to 1
-          points.left_wrist.y = 0.58 - 0.28 * curlProgress;
-          points.right_wrist.y = 0.58 - 0.28 * curlProgress;
-          points.left_wrist.x = 0.28 + 0.05 * curlProgress;
-          points.right_wrist.x = 0.72 - 0.05 * curlProgress;
-
-          if (driftToggle) {
-            alerts.push("Keep elbows tucked to your side.");
-            correct = false;
-            points.left_elbow.x = 0.22;
-            points.right_elbow.x = 0.78;
-          }
-          if (back < 160) {
-            alerts.push("Avoid leaning back.");
-            correct = false;
-            points.left_shoulder.x = 0.38;
-            points.right_shoulder.x = 0.62;
-          }
-          if (correct) {
-            if (elbow < 60) {
-              alerts.push("Good squeeze at top!");
-            } else {
-              alerts.push("Curl: Lift weights upward.");
-            }
-          }
-        }
-
-        setFeedback(alerts);
-        setIsFormCorrect(correct);
-        setSimulatedPoints(points);
-      }, 150);
+      if (webViewRef.current) {
+        webViewRef.current.postMessage(
+          JSON.stringify({
+            type: "setup",
+            mode: exerciseMode,
+            isActive: true,
+          })
+        );
+      }
     }
   };
 
@@ -542,6 +479,7 @@ export const PoseScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       clearInterval(simulationIntervalRef.current);
       simulationIntervalRef.current = null;
     }
+
     if (Platform.OS === "web") {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
@@ -554,7 +492,18 @@ export const PoseScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         const ctx = canvasRef.current.getContext("2d");
         ctx?.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
       }
+    } else {
+      if (webViewRef.current) {
+        webViewRef.current.postMessage(
+          JSON.stringify({
+            type: "setup",
+            mode: exerciseMode,
+            isActive: false,
+          })
+        );
+      }
     }
+
     setKneeAngle("--");
     setBackAngle("--");
     setElbowAngle("--");
@@ -597,10 +546,20 @@ export const PoseScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           </View>
         ) : (
           <View style={styles.fullscreenNativeCameraContainer}>
-            <CameraView style={styles.fullscreenNativeCamera} facing="front" />
-            {isActive && simulatedPoints && (
-              <SkeletonOverlay points={simulatedPoints} isFormCorrect={isFormCorrect} />
-            )}
+            <WebView
+              ref={webViewRef}
+              originWhitelist={["*"]}
+              source={{ html: MOBILE_POSE_HTML }}
+              style={styles.fullscreenNativeCamera}
+              javaScriptEnabled={true}
+              domStorageEnabled={true}
+              allowsInlineMediaPlayback={true}
+              mediaPlaybackRequiresUserAction={false}
+              onPermissionRequest={(event) => {
+                event.grant(event.resources);
+              }}
+              onMessage={handleWebViewMessage}
+            />
           </View>
         )}
 
@@ -640,7 +599,7 @@ export const PoseScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
         {Platform.OS !== "web" && isActive && (
           <View style={styles.simulatedIndicator}>
-            <Text style={styles.simulatedText}>Simulation Mode</Text>
+            <Text style={styles.simulatedText}>AI Real-Time Scan</Text>
           </View>
         )}
 

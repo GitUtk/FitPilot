@@ -10,16 +10,14 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.gitutk.fitpilot",
       "infoPlist": {
-        "NSCameraUsageDescription": "Allow FitPilot to access the camera for real-time biomechanical analysis and form correction.",
-        "NSMotionUsageDescription": "Allow FitPilot to access motion sensors for live step tracking and active calorie estimation."
+        "NSCameraUsageDescription": "Allow FitPilot to access the camera for real-time biomechanical analysis and form correction."
       }
     },
     "android": {
       "package": "com.gitutk.fitpilot",
       "versionCode": 1,
       "permissions": [
-        "android.permission.CAMERA",
-        "android.permission.ACTIVITY_RECOGNITION"
+        "android.permission.CAMERA"
       ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
@@ -38,12 +36,6 @@
         {
           "cameraPermission": "Allow FitPilot to access the camera for real-time biomechanical analysis and form correction.",
           "microphonePermission": "Allow FitPilot to access the microphone for audio instructions."
-        }
-      ],
-      [
-        "expo-sensors",
-        {
-          "motionPermission": "Allow FitPilot to access motion sensors for live step tracking and active calorie estimation."
         }
       ]
     ]

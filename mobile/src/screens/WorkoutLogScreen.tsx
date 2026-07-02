@@ -29,7 +29,7 @@ interface Workout {
 }
 
 export const WorkoutLogScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
-  const { token, logout } = useAuth();
+  const { token } = useAuth();
   const [exercise, setExercise] = useState<"Squat" | "Curl">("Squat");
   const [sets, setSets] = useState("3");
   const [reps, setReps] = useState("10");
@@ -101,9 +101,7 @@ export const WorkoutLogScreen: React.FC<{ navigation: any }> = ({ navigation }) 
       <View style={styles.header}>
         <View style={styles.placeholder} />
         <Text style={styles.headerTitle}>Workout Log</Text>
-        <TouchableOpacity onPress={logout} style={styles.logoutBtn}>
-          <Ionicons name="log-out-outline" size={18} color={COLORS.textPrimary} />
-        </TouchableOpacity>
+        <View style={styles.placeholder} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>

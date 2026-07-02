@@ -25,7 +25,7 @@ interface Message {
 }
 
 export const MealLoggerScreen: React.FC = () => {
-  const { token, logout } = useAuth();
+  const { token } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [inputText, setInputText] = useState("");
@@ -250,9 +250,7 @@ export const MealLoggerScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={logout} style={styles.headerBtn}>
-          <Ionicons name="log-out-outline" size={18} color={COLORS.textPrimary} />
-        </TouchableOpacity>
+        <View style={{ width: 36, height: 36 }} />
         <Text style={styles.headerTitle}>Food Logging AI</Text>
         <TouchableOpacity onPress={clearChat} style={styles.headerBtn}>
           <Ionicons name="trash-outline" size={18} color={COLORS.textPrimary} />
@@ -260,8 +258,9 @@ export const MealLoggerScreen: React.FC = () => {
       </View>
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardContainer}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 100}
       >
         <View style={styles.collapsibleContainer}>
           <TouchableOpacity
