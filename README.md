@@ -1,303 +1,125 @@
-# Fitness and Nutrition AI App Backend
+![FitPilot Icon](mobile/assets/icon.png)
 
-This is a high-performance, async backend built with Python 3.11, FastAPI, and Motor (MongoDB async driver) to serve a React Native mobile application. It features automated calorie and macro-nutrient tracking, recovery score calculation, weekly insights, pose evaluation, contextual AI chat capabilities, and JWT/Google OAuth authentication.
+# FitPilot
 
----
-
-## Technical Stack
-
-- **Runtime**: Python 3.11+
-- **Framework**: FastAPI (Asynchronous ASGI framework)
-- **Database**: MongoDB Atlas (Cloud)
-- **DB Client**: Motor (Non-blocking async MongoDB driver)
-- **Security**: JWT tokens (`PyJWT`), Password hashing (`bcrypt`)
-- **Hosting Platform**: Vercel (Serverless Functions)
+FitPilot is a modern, professional-grade metabolic tracking and biomechanical training assistant. It combines a FastAPI MongoDB Atlas backend with a React Native Expo TypeScript mobile application.
 
 ---
 
-## Directory Structure
+## Technology Stack
 
-```text
-fitness_app/
-├── main.py               # Application entrypoint & lifespan lifecycle
-├── database.py           # MongoDB connection with in-memory mock fallback
-├── requirements.txt      # Dependency package definitions
-├── vercel.json           # Vercel deployment routing configuration
-├── .env                  # Environment secrets (ignored by Git)
-├── .env.example          # Environment variables template
-├── README.md             # Setup instructions and API documentation
-├── models/               # Pydantic validation & DB structure schemas
-│   ├── user.py
-│   ├── workout.py
-│   ├── meal.py
-│   ├── daily_log.py
-│   ├── chat.py
-│   └── pose.py
-├── routes/               # API Router endpoints (Token Protected)
-│   ├── user.py
-│   ├── workout.py
-│   ├── meal.py
-│   ├── summary.py
-│   ├── recommendation.py
-│   ├── chat.py
-│   ├── recovery.py
-│   ├── insights.py
-│   ├── pose.py
-│   └── ai_insights.py
-└── utils/                # Calculation & Security utilities
-    ├── auth.py           # password hashing, JWT generation, OAuth validation
-    ├── calorie_calc.py   # MET-based calorie burn calculator
-    └── macro_calc.py     # ICMR target macro & recovery score builders
-```
+![TypeScript](https://img.shields.io/badge/typescript-%23007acc.svg?style=for-the-badge&logo=typescript&logoColor=white)
+![React Native](https://img.shields.io/badge/react_native-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361dafb)
+![Expo](https://img.shields.io/badge/expo-%231C1E24.svg?style=for-the-badge&logo=expo&logoColor=white)
+![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
+![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)
+![MongoDB](https://img.shields.io/badge/MongoDB-%234ea94b.svg?style=for-the-badge&logo=mongodb&logoColor=white)
+
+### Mobile Frontend
+- **Framework**: React Native with Expo (v57.0.0)
+- **Language**: TypeScript
+- **Navigation**: React Navigation (Native Stack + Bottom Tabs)
+- **Sensory Tracking**: Expo Sensors (Pedometer integration for motion tracking)
+- **Biomechanical AI**: Client-side WASM/WebGL MediaPipe Pose tracking
+
+### Backend Service
+- **Framework**: FastAPI
+- **ASGI Server**: Uvicorn
+- **Async MongoDB Client**: Motor
+- **AI Engine**: Google Gemini 2.5 Flash API (via raw HTTPS/HTTPX requests)
+- **Security**: Cryptographic password hashing (Bcrypt) & JWT session tokens (PyJWT)
+
+### Database
+- **Engine**: MongoDB Atlas (Async Document Store)
 
 ---
 
-## Installation & Local Setup
+## System Architecture Flowchart
 
-### 1. Install Dependencies
-```bash
-pip install -r requirements.txt
-```
+![System Architecture Flowchart](assets/image.png)
 
-### 2. Configure Environment Variables (`.env`)
+---
+
+## Key Features
+
+### 1. Daily Activity Dashboard
+- **Step Tracker**: Accesses the native hardware pedometer. Tracks live step counts alongside calculated walk distance (km) and active calorie expenditure. Falls back to a mock step simulator on emulators/web.
+- **AI Adaptation Engine**: Analyzes your logged meals and physical exercises for today, calculates metabolic targets based on body weight guidelines, and outputs macro and calorie guidance saved directly to your profile.
+- **Real-Time Performance Indicators**: Dynamic grid highlighting active calorie burn, logged calories consumed, exercise exertion rate, and macronutrient balance (Protein/Carbs/Fat).
+
+### 2. Conversational Meal Logger
+- **Natural Language Input**: Type what you ate in plain text (e.g., "I had 2 cups of masoor dal and 4 boiled eggs for lunch").
+- **Gemini NLP Parsing**: Translates plain text into ICMR standard portions, computes macro distributions, and auto-saves the logged meals straight into MongoDB.
+- **Persisted History**: Loads previous chat conversation sessions on startup and supports clearing logs from the database via a trash icon.
+- **Custom List Formatting**: Renders markdown details, bold labels, and bulleted ingredients into structured text bubbles.
+
+### 3. Workout Logger
+- **Quick Logging**: Save training sets, reps, and resistance weights.
+- **MET Calculations**: Computes calorie burn and exertion intensity ratings dynamically based on exercise MET indexes:
+  - **Squat**: 5.0 MET
+  - **Bicep Curl**: 3.5 MET
+- **Workout History**: Displays a timeline of exercises logged during the day.
+
+### 4. Real-Time Posture Checker (Web Overlay)
+- **Latency-Free Detection**: Processes camera frames locally on the client using WebGL-accelerated MediaPipe (avoiding round-trip network delays).
+- **Form Analysis & Audio-Visual Feedback**:
+  - *Squats*: Checks depth and checks back rounding.
+  - *Bicep Curls*: Checks elbow placement and leans.
+  - *Skeletal Color Cues*: Skeletal overlays render in green when form is correct and turn red during errors.
+
+---
+
+## System Equations & Calculations
+
+### Calorie Burn Calculation
+Based on activity duration, metabolic index (MET), and user body weight:
+
+$$\text{Duration (hours)} = \frac{\text{Sets}}{30}$$
+
+$$\text{Calories Burned} = \text{MET} \times \text{User Weight (kg)} \times \text{Duration (hours)}$$
+
+### Exertion Intensity Score
+Measures mechanical load adjusted against body weight:
+
+$$\text{Intensity Score} = \left(\frac{\text{Sets} \times \text{Reps} \times \text{Weight (kg)}}{\text{User Weight (kg)}}\right) \times \text{MET}$$
+
+### Metabolic Goal Formulas
+Calculated on user profile body weight:
+- **Target Protein**: $1.6\text{g} \times \text{Weight (kg)}$
+- **Target Carbohydrates**: $3.0\text{g} \times \text{Weight (kg)}$
+- **Target Lipids (Fat)**: $1.0\text{g} \times \text{Weight (kg)}$
+- **Calorie Allowance**: $2000\text{ kcal} + \text{Workout Calories Burned}$
+
+---
+
+## Getting Started
+
+### 1. Setup MongoDB Atlas & Gemini API
+Ensure you have:
+1. A MongoDB Atlas Connection URI.
+2. A Gemini API key from Google AI Studio.
+
+Create a `.env` file in the `backend/` directory:
 ```env
-MONGODB_URL=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/?retryWrites=true&w=majority
-DATABASE_NAME=fitness_app_db
+SECRET_KEY=your_jwt_secret_signing_key
+MONGODB_URL=mongodb+srv://<username>:<password>@cluster.mongodb.net/fitpilot
 GEMINI_API_KEY=AIzaSy...
-
-# Authentication Config
-JWT_SECRET_KEY=your_secure_random_jwt_secret_key
-ACCESS_TOKEN_EXPIRE_MINUTES=1440
 ```
 
-### 3. Run Locally
+### 2. Launch the Backend Server
 ```bash
-uvicorn main:app --host 127.0.0.1 --port 8000 --reload
+cd backend
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
----
-
-## API Endpoints Reference
-
-### 1. User Setup & Auth (Public)
-
-#### `POST /user` (Register)
-Registers a new user.
-- **Request Body**:
-  ```json
-  {
-    "email": "jane@example.com",
-    "password": "securepassword123",
-    "name": "Jane Doe",
-    "age": 28,
-    "weight_kg": 65.5,
-    "height_cm": 168.0,
-    "goal": "lose_weight"
-  }
-  ```
-- **Response** (201 Created):
-  ```json
-  {
-    "user_id": "649c25f9b4c09d0d8299a9a3",
-    "message": "User created successfully"
-  }
-  ```
-
-#### `POST /user/login` (Email Login)
-Authenticates credentials and returns a JWT access token.
-- **Request Body**:
-  ```json
-  {
-    "email": "jane@example.com",
-    "password": "securepassword123"
-  }
-  ```
-- **Response** (200 OK):
-  ```json
-  {
-    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "token_type": "bearer",
-    "user_id": "649c25f9b4c09d0d8299a9a3",
-    "is_new_user": false
-  }
-  ```
-
-#### `POST /user/oauth-login` (Google OAuth)
-Authenticates a user via Google ID Token. If the user does not exist, they are registered automatically.
-- **Request Body**:
-  ```json
-  {
-    "provider": "google",
-    "token": "google-id-token-received-on-mobile-app",
-    "name": "Optional Name override",
-    "age": 30,
-    "weight_kg": 75.0,
-    "height_cm": 178.0,
-    "goal": "build_muscle"
-  }
-  ```
-- **Response** (200 OK):
-  ```json
-  {
-    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "token_type": "bearer",
-    "user_id": "649c25f9b4c09d0d8299a9a4",
-    "is_new_user": true
-  }
-  ```
-
----
-
-### 2. Protected Routes (Requires Header: `Authorization: Bearer <JWT>`)
-
-All endpoints below require a valid JWT token in the headers.
-
-#### `POST /workout` (Log Workout)
-- **Request Body**:
-  ```json
-  {
-    "user_id": "649c25f9b4c09d0d8299a9a3",
-    "exercises": [
-      {
-        "name": "squat",
-        "sets": 4,
-        "reps": 12,
-        "weight_kg": 50.0,
-        "met_value": 5.0
-      }
-    ]
-  }
-  ```
-- **Response** (201 Created):
-  ```json
-  {
-    "workout_id": "649c265bb4c09d0d8299a9a4",
-    "total_calories_burned": 98.25,
-    "intensity_score": "medium"
-  }
-  ```
-
-#### `POST /meal` (Log Meal)
-- **Request Body**:
-  ```json
-  {
-    "user_id": "649c25f9b4c09d0d8299a9a3",
-    "items": [
-      {
-        "name": "Oatmeal with protein",
-        "calories": 350.0,
-        "protein_g": 30.0,
-        "carbs_g": 45.0,
-        "fat_g": 5.0,
-        "source": "manual"
-      }
-    ]
-  }
-  ```
-
-#### `GET /today-summary/{user_id}`
-- **Response** (200 OK):
-  ```json
-  {
-    "user": { "weight_kg": 65.5, "goal": "lose_weight" },
-    "workout": { "intensity_score": "medium", "calories_burned": 98.3, "exercises": ["squat"] },
-    "meals": { "calories_consumed": 350.0, "protein": 30.0, "carbs": 45.0, "fat": 5.0 },
-    "remaining": { "protein": 87.9, "carbs": 151.5, "fat": 47.4, "calories": 1203.8 },
-    "sleep_hours": 7.5
-  }
-  ```
-
-#### `GET /ai-recommendation/{user_id}`
-- **Response** (200 OK):
-  ```json
-  {
-    "user_goal": "lose_weight",
-    "workout_intensity": "medium",
-    "recommendation": "Great work on sleeping 7.5 hours! Since you are doing a weight loss goal..."
-  }
-  ```
-
-#### `POST /chat-reply`
-- **Request Body**:
-  ```json
-  {
-    "user_id": "649c25f9b4c09d0d8299a9a3",
-    "message": "What should I eat?",
-    "conversation_history": []
-  }
-  ```
-
-#### `POST /sleep`
-- **Request Body**:
-  ```json
-  {
-    "user_id": "649c25f9b4c09d0d8299a9a3",
-    "sleep_hours": 7.5
-  }
-  ```
-
-#### `GET /recovery-score/{user_id}`
-- **Response** (200 OK):
-  ```json
-  {
-    "score": "green",
-    "label": "Excellent Recovery",
-    "reason": "Sufficient sleep duration and balanced physical intensity..."
-  }
-  ```
-
-#### `GET /weekly-insights/{user_id}`
-- **Response** (200 OK):
-  ```json
-  {
-    "days_logged": 1,
-    "avg_calories_burned": 98.3,
-    "avg_protein_consumed": 30.0,
-    "best_day": "2026-06-21",
-    "pattern_data": [ ... ]
-  }
-  ```
-
-#### `POST /pose-feedback`
-- **Request Body**:
-  ```json
-  {
-    "user_id": "649c25f9b4c09d0d8299a9a3",
-    "exercise": "squat",
-    "knee_angle": 120.0,
-    "elbow_angle": 90.0,
-    "back_angle": 75.0
-  }
-  ```
-- **Response** (200 OK):
-  ```json
-  {
-    "feedback": "Shallow squat depth",
-    "is_correct": false,
-    "correction": "Lower your hips further until your thighs are parallel to the floor (aim for 90-100 degrees)."
-  }
-  ```
-
----
-
-## Deploying to Vercel
-
-This backend is pre-configured to deploy seamlessly on Vercel as a Python Serverless Function.
-
-### Step 1: Deploy code to GitHub
-Push your local commits containing `vercel.json` to your GitHub repository:
+### 3. Launch the Mobile Application
 ```bash
-git push
+cd mobile
+npm install
+npx expo start
 ```
-
-### Step 2: Set up Vercel Service
-1. Log in to [Vercel](https://vercel.com).
-2. Click **Add New** -> **Project**.
-3. Import your GitHub repository.
-4. Expand the **Environment Variables** section and configure:
-   - `MONGODB_URL`: Your MongoDB Atlas Cluster connection URI.
-   - `DATABASE_NAME`: `fitness_app_db` (or custom name).
-   - `JWT_SECRET_KEY`: A secure secret string for token signing.
-   - `ACCESS_TOKEN_EXPIRE_MINUTES`: `1440` (defaults to 24 hours if omitted).
-   - `GEMINI_API_KEY`: *(Optional)* Your Google AI Studio API key.
-5. Click **Deploy**. Vercel will automatically build the package and serve your endpoints!
+- Press **w** to run on web browser.
+- Scan QR code to launch in Expo Go on Android/iOS.

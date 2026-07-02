@@ -1,321 +1,749 @@
-import React, { useState, useEffect } from 'react';
-import { useRoute } from '@react-navigation/native';
+import React, { useState, useEffect, useRef } from "react";
 import {
+  StyleSheet,
   View,
   Text,
-  StyleSheet,
-  ScrollView,
   TouchableOpacity,
-  Alert,
-  KeyboardAvoidingView,
   Platform,
-} from 'react-native';
-import { Colors, Typography, Spacing, BorderRadius } from '../theme';
-import { useAppContext } from '../context/AppContext';
-import { getPoseFeedback } from '../api/client';
-import NeoButton from '../components/NeoButton';
-import NeoInput from '../components/NeoInput';
-import NeoCard from '../components/NeoCard';
+  SafeAreaView,
+  ActivityIndicator,
+} from "react-native";
+import { Camera, CameraView } from "expo-camera";
+import { COLORS, SPACING, SIZES } from "../styles/theme";
 
-// Backend enum only supports these two exercises
-const EXERCISES = [
-  {
-    key: 'squat',
-    label: 'Squat',
-    emoji: '🦵',
-    tips: 'Lower hips until thighs are parallel to the floor. Keep chest up and core tight.',
-  },
-  {
-    key: 'bicep_curl',
-    label: 'Bicep Curl',
-    emoji: '💪',
-    tips: 'Keep upper body still — no swinging. Slow 3-second lowering phase for best results.',
-  },
-];
+type ExerciseMode = "squat" | "curl";
 
-const ANGLE_PRESETS: Record<string, { knee: string; elbow: string; back: string }> = {
-  squat: { knee: '100', elbow: '90', back: '75' },
-  bicep_curl: { knee: '180', elbow: '60', back: '90' },
-};
+export const PoseScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [isActive, setIsActive] = useState(false);
+  const [exerciseMode, setExerciseMode] = useState<ExerciseMode>("squat");
+  const [kneeAngle, setKneeAngle] = useState<number | string>("--");
+  const [backAngle, setBackAngle] = useState<number | string>("--");
+  const [elbowAngle, setElbowAngle] = useState<number | string>("--");
+  const [feedback, setFeedback] = useState<string[]>([]);
+  const [isFormCorrect, setIsFormCorrect] = useState(true);
+  const [sdkLoaded, setSdkLoaded] = useState(false);
+  const [isModelReady, setIsModelReady] = useState(false);
+  const [isWasmLoaded, setIsWasmLoaded] = useState(false);
 
-export default function PoseScreen() {
-  const { user } = useAppContext();
-  const route = useRoute<any>();
-  const [selectedEx, setSelectedEx] = useState('squat');
-  const [kneeAngle, setKneeAngle] = useState('120');
-  const [elbowAngle, setElbowAngle] = useState('90');
-  const [backAngle, setBackAngle] = useState('75');
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
-
-  const selectExercise = (key: string) => {
-    setSelectedEx(key);
-    const preset = ANGLE_PRESETS[key];
-    if (preset) {
-      setKneeAngle(preset.knee);
-      setElbowAngle(preset.elbow);
-      setBackAngle(preset.back);
-    }
-    setResult(null);
-  };
+  const videoRef = useRef<any>(null);
+  const canvasRef = useRef<any>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const poseRef = useRef<any>(null);
+  const activeRef = useRef(false);
+  const exerciseModeRef = useRef<ExerciseMode>("squat");
+  const animationFrameRef = useRef<number | null>(null);
+  const simulationIntervalRef = useRef<any>(null);
 
   useEffect(() => {
-    if (route.params?.exercise) {
-      selectExercise(route.params.exercise);
+    exerciseModeRef.current = exerciseMode;
+    if (isActive) {
+      setKneeAngle("--");
+      setBackAngle("--");
+      setElbowAngle("--");
+      setFeedback([]);
+      setIsFormCorrect(true);
     }
-  }, [route.params?.exercise]);
+  }, [exerciseMode]);
 
-  const handleAnalyze = async () => {
-    if (!user) return;
-    setLoading(true);
-    setResult(null);
+  useEffect(() => {
+    const getPermissions = async () => {
+      if (Platform.OS !== "web") {
+        const { status } = await Camera.requestCameraPermissionsAsync();
+        setHasPermission(status === "granted");
+      } else {
+        setHasPermission(true);
+        loadMediaPipe();
+      }
+    };
+    getPermissions();
+
+    return () => {
+      stopSession();
+    };
+  }, []);
+
+  const loadMediaPipe = async () => {
+    if (Platform.OS !== "web") return;
     try {
-      const res = await getPoseFeedback(
-        user.user_id,
-        selectedEx,
-        Number(kneeAngle),
-        Number(elbowAngle),
-        Number(backAngle)
-      );
-      setResult(res.data);
-    } catch (e: any) {
-      Alert.alert('Error', e?.response?.data?.detail || 'Failed to analyze pose.');
-    } finally {
-      setLoading(false);
+      await loadScript("https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js");
+      await loadScript("https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js");
+      setSdkLoaded(true);
+      initializePoseModel();
+    } catch {}
+  };
+
+  const loadScript = (src: string): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      const existing = document.querySelector(`script[src="${src}"]`);
+      if (existing) {
+        resolve();
+        return;
+      }
+      const script = document.createElement("script");
+      script.src = src;
+      script.async = true;
+      script.onload = () => resolve();
+      script.onerror = () => reject();
+      document.head.appendChild(script);
+    });
+  };
+
+  const initializePoseModel = () => {
+    const win = window as any;
+    if (!win.Pose) return;
+
+    const pose = new win.Pose({
+      locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`,
+    });
+
+    pose.setOptions({
+      modelComplexity: 1,
+      smoothLandmarks: true,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5,
+    });
+
+    pose.onResults(onPoseResults);
+    poseRef.current = pose;
+    setIsModelReady(true);
+  };
+
+  const calculateAngle = (a: any, b: any, c: any): number => {
+    const ba = { x: a.x - b.x, y: a.y - b.y };
+    const bc = { x: c.x - b.x, y: c.y - b.y };
+    const dotProd = ba.x * bc.x + ba.y * bc.y;
+    const magBa = Math.sqrt(ba.x * ba.x + ba.y * ba.y);
+    const magBc = Math.sqrt(bc.x * bc.x + bc.y * bc.y);
+    if (magBa === 0 || magBc === 0) return 0.0;
+    let cosAngle = dotProd / (magBa * magBc);
+    cosAngle = Math.max(-1.0, Math.min(1.0, cosAngle));
+    return Math.round(Math.acos(cosAngle) * (180 / Math.PI) * 10) / 10;
+  };
+
+  const processForm = (points: any, mode: ExerciseMode) => {
+    const alerts: string[] = [];
+    let correct = true;
+
+    const knee = calculateAngle(points.left_hip, points.left_knee, points.left_ankle);
+    const back = calculateAngle(points.left_shoulder, points.left_hip, points.left_knee);
+    const elbow = calculateAngle(points.left_shoulder, points.left_elbow, points.left_wrist);
+
+    setKneeAngle(knee);
+    setBackAngle(back);
+    setElbowAngle(elbow);
+
+    if (mode === "squat") {
+      const hipWidth = Math.abs(points.left_hip.x - points.right_hip.x);
+      const kneeWidth = Math.abs(points.left_knee.x - points.right_knee.x);
+      const isCaving = kneeWidth < hipWidth * 0.92;
+
+      if (isCaving) {
+        alerts.push("Knees caving in — push them out.");
+        correct = false;
+      }
+      if (back < 145.0) {
+        alerts.push("Keep your back straight.");
+        correct = false;
+      }
+      if (correct) {
+        if (knee < 100.0) {
+          alerts.push("Good depth!");
+        } else {
+          alerts.push("Squat: Lower your hips.");
+        }
+      }
+    } else {
+      const leftElbowDrift = Math.abs(points.left_elbow.x - points.left_shoulder.x);
+      const isDrifting = leftElbowDrift > 0.12;
+
+      if (isDrifting) {
+        alerts.push("Keep elbows tucked to your side.");
+        correct = false;
+      }
+      if (back < 160.0) {
+        alerts.push("Avoid leaning back.");
+        correct = false;
+      }
+      if (correct) {
+        if (elbow < 60.0) {
+          alerts.push("Good squeeze at top!");
+        } else {
+          alerts.push("Curl: Lift weights upward.");
+        }
+      }
+    }
+
+    setFeedback(alerts);
+    setIsFormCorrect(correct);
+  };
+
+  const onPoseResults = (results: any) => {
+    if (!activeRef.current) return;
+    if (!isWasmLoaded) {
+      setIsWasmLoaded(true);
+    }
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    if (results.poseLandmarks) {
+      const lms = results.poseLandmarks;
+      const points = {
+        left_shoulder: lms[11],
+        right_shoulder: lms[12],
+        left_elbow: lms[13],
+        right_elbow: lms[14],
+        left_wrist: lms[15],
+        right_wrist: lms[16],
+        left_hip: lms[23],
+        right_hip: lms[24],
+        left_knee: lms[25],
+        right_knee: lms[26],
+        left_ankle: lms[27],
+        right_ankle: lms[28],
+      };
+
+      processForm(points, exerciseModeRef.current);
+      drawSkeletonOnCanvas(ctx, points);
     }
   };
 
-  const selectedExData = EXERCISES.find((e) => e.key === selectedEx);
+  const drawSkeletonOnCanvas = (ctx: any, points: any) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const videoWidth = videoRef.current ? videoRef.current.videoWidth : 640;
+    const videoHeight = videoRef.current ? videoRef.current.videoHeight : 480;
+    const containerWidth = canvas.clientWidth;
+    const containerHeight = canvas.clientHeight;
+
+    if (canvas.width !== containerWidth || canvas.height !== containerHeight) {
+      canvas.width = containerWidth;
+      canvas.height = containerHeight;
+    }
+
+    const arVideo = videoWidth / videoHeight;
+    const arContainer = containerWidth / containerHeight;
+
+    let scale = 1;
+    let offsetX = 0;
+    let offsetY = 0;
+
+    if (arContainer < arVideo) {
+      scale = containerHeight / videoHeight;
+      offsetX = (containerWidth - videoWidth * scale) / 2;
+    } else {
+      scale = containerWidth / videoWidth;
+      offsetY = (containerHeight - videoHeight * scale) / 2;
+    }
+
+    ctx.fillStyle = isFormCorrect ? "#10B981" : "#EF4444";
+    ctx.strokeStyle = isFormCorrect ? "#10B981" : "#EF4444";
+    ctx.lineWidth = 4;
+
+    const connections = [
+      ["left_shoulder", "right_shoulder"],
+      ["left_shoulder", "left_elbow"],
+      ["left_elbow", "left_wrist"],
+      ["right_shoulder", "right_elbow"],
+      ["right_elbow", "right_wrist"],
+      ["left_shoulder", "left_hip"],
+      ["right_shoulder", "right_hip"],
+      ["left_hip", "right_hip"],
+      ["left_hip", "left_knee"],
+      ["left_knee", "left_ankle"],
+      ["right_hip", "right_knee"],
+      ["right_knee", "right_ankle"],
+    ];
+
+    const screenPoints: any = {};
+    for (const [key, pt] of Object.entries(points)) {
+      const point = pt as any;
+      screenPoints[key] = {
+        x: point.x * videoWidth * scale + offsetX,
+        y: point.y * videoHeight * scale + offsetY,
+      };
+    }
+
+    connections.forEach(([p1, p2]) => {
+      const pt1 = screenPoints[p1];
+      const pt2 = screenPoints[p2];
+      if (pt1 && pt2) {
+        ctx.beginPath();
+        ctx.moveTo(pt1.x, pt1.y);
+        ctx.lineTo(pt2.x, pt2.y);
+        ctx.stroke();
+      }
+    });
+
+    for (const pt of Object.values(screenPoints)) {
+      const point = pt as any;
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, 6, 0, 2 * Math.PI);
+      ctx.fill();
+    }
+  };
+
+  const startSession = async () => {
+    setIsActive(true);
+    activeRef.current = true;
+
+    if (Platform.OS === "web") {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user" },
+          audio: false,
+        });
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play();
+        }
+        processWebFrame();
+      } catch {
+        setIsActive(false);
+        activeRef.current = false;
+      }
+    } else {
+      let step = 0;
+      simulationIntervalRef.current = setInterval(() => {
+        step += 0.08;
+        const currentMode = exerciseModeRef.current;
+        const cycle = Math.sin(step);
+        let correct = true;
+        const alerts: string[] = [];
+
+        if (currentMode === "squat") {
+          const knee = Math.round(130 + 40 * cycle);
+          const back = cycle < -0.5 ? Math.round(135 + 5 * cycle) : Math.round(155 + 5 * cycle);
+          const caveToggle = cycle > 0.6;
+
+          setKneeAngle(knee);
+          setBackAngle(back);
+          setElbowAngle("--");
+
+          if (caveToggle) {
+            alerts.push("Knees caving in — push them out.");
+            correct = false;
+          }
+          if (back < 145) {
+            alerts.push("Keep your back straight.");
+            correct = false;
+          }
+          if (correct) {
+            if (knee < 100) {
+              alerts.push("Good depth!");
+            } else {
+              alerts.push("Squat: Lower your hips.");
+            }
+          }
+        } else {
+          const elbow = Math.round(100 + 60 * cycle);
+          const back = cycle < -0.6 ? Math.round(150 + 5 * cycle) : Math.round(170 + 5 * cycle);
+          const driftToggle = cycle > 0.7;
+
+          setKneeAngle("--");
+          setBackAngle(back);
+          setElbowAngle(elbow);
+
+          if (driftToggle) {
+            alerts.push("Keep elbows tucked to your side.");
+            correct = false;
+          }
+          if (back < 160) {
+            alerts.push("Avoid leaning back.");
+            correct = false;
+          }
+          if (correct) {
+            if (elbow < 60) {
+              alerts.push("Good squeeze at top!");
+            } else {
+              alerts.push("Curl: Lift weights upward.");
+            }
+          }
+        }
+
+        setFeedback(alerts);
+        setIsFormCorrect(correct);
+      }, 150);
+    }
+  };
+
+  const processWebFrame = async () => {
+    if (!activeRef.current) return;
+    if (videoRef.current && poseRef.current && videoRef.current.readyState >= 2) {
+      try {
+        await poseRef.current.send({ image: videoRef.current });
+      } catch {}
+    }
+    animationFrameRef.current = requestAnimationFrame(processWebFrame);
+  };
+
+  const stopSession = () => {
+    setIsActive(false);
+    activeRef.current = false;
+    setIsWasmLoaded(false);
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    if (simulationIntervalRef.current) {
+      clearInterval(simulationIntervalRef.current);
+      simulationIntervalRef.current = null;
+    }
+    if (Platform.OS === "web") {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
+      if (canvasRef.current) {
+        const ctx = canvasRef.current.getContext("2d");
+        ctx?.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+      }
+    }
+    setKneeAngle("--");
+    setBackAngle("--");
+    setElbowAngle("--");
+    setFeedback([]);
+    setIsFormCorrect(true);
+  };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView style={styles.bg} contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>AI POSE ANALYSIS</Text>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.cameraViewport}>
+        {Platform.OS === "web" ? (
+          <View style={styles.fullscreenWebCamera}>
+            <video
+              ref={videoRef}
+              style={styles.webVideoElement}
+              playsInline
+              muted
+            />
+            <canvas
+              ref={canvasRef}
+              style={styles.webCanvasOverlay}
+            />
           </View>
-          <Text style={styles.title}>Pose{'\n'}Feedback 🎯</Text>
-          <Text style={styles.subtitle}>Enter your joint angles to get real-time form corrections.</Text>
-        </View>
-
-        {/* Exercise Selector */}
-        <NeoCard title="Select Exercise" accent={Colors.primary}>
-          <View style={styles.exGrid}>
-            {EXERCISES.map((ex) => (
-              <TouchableOpacity
-                key={ex.key}
-                style={[styles.exItem, selectedEx === ex.key && styles.exItemActive]}
-                onPress={() => selectExercise(ex.key)}
-              >
-                <Text style={styles.exEmoji}>{ex.emoji}</Text>
-                <Text style={[styles.exLabel, selectedEx === ex.key && styles.exLabelActive]}>
-                  {ex.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          {selectedExData && (
-            <View style={styles.tipBox}>
-              <Text style={styles.tipText}>💡 {selectedExData.tips}</Text>
-            </View>
-          )}
-        </NeoCard>
-
-        {/* Angle Inputs */}
-        <NeoCard title="Joint Angles" accent={Colors.secondary}>
-          <Text style={styles.angleHint}>Enter angles in degrees (0-180°)</Text>
-
-          <View style={styles.angleVisual}>
-            {[
-              { label: 'Knee', value: kneeAngle, color: Colors.primary },
-              { label: 'Elbow', value: elbowAngle, color: Colors.secondary },
-              { label: 'Back', value: backAngle, color: Colors.purple },
-            ].map((a) => (
-              <View key={a.label} style={styles.angleGauge}>
-                <View
-                  style={[
-                    styles.angleCircle,
-                    { borderColor: a.color, backgroundColor: a.color + '20' },
-                  ]}
-                >
-                  <Text style={[styles.angleVal, { color: a.color }]}>{a.value}°</Text>
-                </View>
-                <Text style={styles.angleLabel}>{a.label}</Text>
-              </View>
-            ))}
-          </View>
-
-          <NeoInput
-            label="Knee Angle (°)"
-            placeholder="90 - 180"
-            value={kneeAngle}
-            onChangeText={setKneeAngle}
-            keyboardType="decimal-pad"
-          />
-          <NeoInput
-            label="Elbow Angle (°)"
-            placeholder="0 - 180"
-            value={elbowAngle}
-            onChangeText={setElbowAngle}
-            keyboardType="decimal-pad"
-          />
-          <NeoInput
-            label="Back Angle (°)"
-            placeholder="0 - 180"
-            value={backAngle}
-            onChangeText={setBackAngle}
-            keyboardType="decimal-pad"
-          />
-
-          <NeoButton
-            title="Analyze Pose 🎯"
-            onPress={handleAnalyze}
-            loading={loading}
-            variant="primary"
-            size="lg"
-            fullWidth
-          />
-        </NeoCard>
-
-        {/* Result */}
-        {result && (
-          <NeoCard
-            title={result.is_correct ? '✅ Form Check' : '⚠️ Correction Needed'}
-            accent={result.is_correct ? Colors.green : Colors.red}
-          >
-            <View
-              style={[
-                styles.feedbackBanner,
-                { backgroundColor: result.is_correct ? Colors.greenLight : Colors.redLight },
-              ]}
-            >
-              <Text style={styles.feedbackIcon}>{result.is_correct ? '✅' : '⚠️'}</Text>
-              <Text style={styles.feedbackMain}>{result.feedback}</Text>
-            </View>
-
-            {!result.is_correct && result.correction && (
-              <View style={styles.correctionBox}>
-                <Text style={styles.correctionTitle}>How to fix:</Text>
-                <Text style={styles.correctionText}>{result.correction}</Text>
-              </View>
-            )}
-          </NeoCard>
+        ) : (
+          <CameraView style={styles.fullscreenNativeCamera} facing="front" />
         )}
 
-        {/* Info Card */}
-        <NeoCard title="How It Works" accent={Colors.accent} style={{ marginTop: Spacing.sm }}>
-          {[
-            { icon: '📐', text: 'Measure joint angles using a goniometer or pose estimation app' },
-            { icon: '📊', text: 'Input the angles for knee, elbow, and back' },
-            { icon: '🤖', text: 'Our AI analyzes your form against optimal ranges' },
-            { icon: '✅', text: 'Get instant corrective feedback' },
-          ].map((item) => (
-            <View key={item.text} style={styles.infoRow}>
-              <Text style={styles.infoIcon}>{item.icon}</Text>
-              <Text style={styles.infoText}>{item.text}</Text>
+        <View style={styles.headerOverlay}>
+          <TouchableOpacity onPress={() => { stopSession(); navigation.navigate("Workouts"); }} style={styles.backCircle}>
+            <Text style={styles.backArrow}>←</Text>
+          </TouchableOpacity>
+          <View style={styles.modeToggleContainer}>
+            <TouchableOpacity
+              style={[styles.modeTab, exerciseMode === "squat" && styles.modeTabActive]}
+              onPress={() => setExerciseMode("squat")}
+            >
+              <Text style={[styles.modeTabText, exerciseMode === "squat" && styles.modeTabTextActive]}>
+                Squat
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modeTab, exerciseMode === "curl" && styles.modeTabActive]}
+              onPress={() => setExerciseMode("curl")}
+            >
+              <Text style={[styles.modeTabText, exerciseMode === "curl" && styles.modeTabTextActive]}>
+                Curl
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.invisiblePlaceholder} />
+        </View>
+
+        {Platform.OS === "web" && isActive && !isWasmLoaded && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color="#FFFFFF" style={styles.spinner} />
+            <Text style={styles.loadingOverlayText}>
+              Loading WASM Model...{"\n"}Please wait a moment.
+            </Text>
+          </View>
+        )}
+
+        {Platform.OS !== "web" && isActive && (
+          <View style={styles.simulatedIndicator}>
+            <Text style={styles.simulatedText}>Simulation Mode</Text>
+          </View>
+        )}
+
+        <View style={styles.hudOverlay}>
+          <View style={styles.statsPanel}>
+            <View style={styles.statPill}>
+              <Text style={styles.statLabel}>KNEE</Text>
+              <Text style={styles.statVal}>{kneeAngle}°</Text>
             </View>
-          ))}
-        </NeoCard>
-      </ScrollView>
-    </KeyboardAvoidingView>
+            <View style={styles.statPill}>
+              <Text style={styles.statLabel}>BACK</Text>
+              <Text style={styles.statVal}>{backAngle}°</Text>
+            </View>
+            <View style={styles.statPill}>
+              <Text style={styles.statLabel}>ELBOW</Text>
+              <Text style={styles.statVal}>{elbowAngle}°</Text>
+            </View>
+          </View>
+
+          <View style={[styles.feedbackPanel, !isFormCorrect && styles.feedbackPanelError]}>
+            <Text style={styles.panelTitle}>Biomechanical Analysis</Text>
+            {feedback.length === 0 ? (
+              <Text style={styles.noFeedback}>Press start to run AI evaluation</Text>
+            ) : (
+              feedback.map((item, index) => (
+                <Text key={index} style={[styles.feedbackLine, !isFormCorrect && styles.feedbackLineError]}>
+                  {item}
+                </Text>
+              ))
+            )}
+          </View>
+
+          <TouchableOpacity
+            style={[styles.sessionButton, isActive ? styles.stopButton : styles.startButton]}
+            onPress={isActive ? stopSession : startSession}
+            disabled={Platform.OS === "web" && !isModelReady}
+          >
+            <Text style={[styles.sessionButtonText, isActive && { color: "#FFFFFF" }]}>
+              {isActive ? "Stop Scanner" : "Start Real-Time Check"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </SafeAreaView>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  bg: { flex: 1, backgroundColor: Colors.bg },
-  container: { padding: Spacing.xl, paddingBottom: Spacing.xxxl },
-  header: { marginBottom: Spacing.xxl },
-  badge: {
-    alignSelf: 'flex-start',
-    backgroundColor: Colors.primaryLight,
-    borderWidth: 2,
-    borderColor: Colors.border,
-    borderRadius: BorderRadius.sm,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    marginBottom: Spacing.lg,
-    shadowColor: Colors.border,
-    shadowOffset: { width: 3, height: 3 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 3,
+  container: {
+    flex: 1,
+    backgroundColor: "#000000",
   },
-  badgeText: { fontSize: Typography.fontSizeXS, fontWeight: Typography.fontWeightBlack, color: Colors.primary, letterSpacing: 2 },
-  title: { fontSize: Typography.fontSize2XL, fontWeight: Typography.fontWeightBlack, color: Colors.text, lineHeight: 34 },
-  subtitle: { fontSize: Typography.fontSizeSM, color: Colors.textSecondary, marginTop: Spacing.sm, lineHeight: 20 },
-
-  exGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
-  exItem: {
-    alignItems: 'center',
-    width: '30%',
-    borderWidth: 2,
-    borderColor: Colors.borderLight,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    backgroundColor: Colors.cardAlt,
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: "#000000",
+    justifyContent: "center",
+    alignItems: "center",
   },
-  exItemActive: {
-    backgroundColor: Colors.primaryLight,
-    borderColor: Colors.border,
-    shadowColor: Colors.border,
-    shadowOffset: { width: 3, height: 3 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 3,
+  errorText: {
+    color: "#EF4444",
+    fontSize: 14,
   },
-  exEmoji: { fontSize: 24, marginBottom: Spacing.xs },
-  exLabel: { fontSize: Typography.fontSizeXS, color: Colors.textSecondary, textAlign: 'center', fontWeight: Typography.fontWeightMedium },
-  exLabelActive: { color: Colors.primary, fontWeight: Typography.fontWeightBold },
-
-  tipBox: {
-    backgroundColor: Colors.accentLight,
-    borderWidth: 2,
-    borderColor: Colors.border,
-    borderRadius: BorderRadius.sm,
-    padding: Spacing.md,
-    marginTop: Spacing.md,
+  cameraViewport: {
+    flex: 1,
+    position: "relative",
+    width: "100%",
+    height: "100%",
   },
-  tipText: { fontSize: Typography.fontSizeSM, color: Colors.text, fontStyle: 'italic' },
-
-  angleHint: { fontSize: Typography.fontSizeSM, color: Colors.textSecondary, marginBottom: Spacing.lg },
-  angleVisual: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: Spacing.xl },
-  angleGauge: { alignItems: 'center', gap: Spacing.sm },
-  angleCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    borderWidth: 3,
-    alignItems: 'center',
-    justifyContent: 'center',
+  fullscreenWebCamera: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: "100%",
+    backgroundColor: "#000000",
   },
-  angleVal: { fontSize: Typography.fontSizeMD, fontWeight: Typography.fontWeightBlack },
-  angleLabel: { fontSize: Typography.fontSizeXS, color: Colors.textSecondary, fontWeight: Typography.fontWeightBold, textTransform: 'uppercase' },
-
-  feedbackBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    borderWidth: 2,
-    borderColor: Colors.border,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.lg,
-    marginBottom: Spacing.lg,
+  webVideoElement: {
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
   },
-  feedbackIcon: { fontSize: 28 },
-  feedbackMain: { flex: 1, fontSize: Typography.fontSizeLG, fontWeight: Typography.fontWeightBold, color: Colors.text },
-
-  correctionBox: {
-    backgroundColor: Colors.cardAlt,
-    borderWidth: 2,
-    borderColor: Colors.border,
-    borderRadius: BorderRadius.sm,
-    padding: Spacing.lg,
+  webCanvasOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: "100%",
   },
-  correctionTitle: { fontSize: Typography.fontSizeSM, fontWeight: Typography.fontWeightBlack, color: Colors.text, marginBottom: Spacing.sm, textTransform: 'uppercase', letterSpacing: 0.5 },
-  correctionText: { fontSize: Typography.fontSizeMD, color: Colors.text, lineHeight: 22 },
-
-  infoRow: { flexDirection: 'row', gap: Spacing.md, marginBottom: Spacing.md, alignItems: 'flex-start' },
-  infoIcon: { fontSize: 18, marginTop: 1 },
-  infoText: { flex: 1, fontSize: Typography.fontSizeSM, color: Colors.textSecondary, lineHeight: 20 },
+  fullscreenNativeCamera: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: "100%",
+  },
+  headerOverlay: {
+    position: "absolute",
+    top: Platform.OS === "ios" ? 10 : 20,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: SPACING.md,
+    zIndex: 10,
+  },
+  backCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
+  },
+  backArrow: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  modeToggleContainer: {
+    flexDirection: "row",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    borderRadius: 20,
+    padding: 2,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
+  },
+  modeTab: {
+    paddingVertical: 4,
+    paddingHorizontal: 16,
+    borderRadius: 18,
+  },
+  modeTabActive: {
+    backgroundColor: "#FFFFFF",
+  },
+  modeTabText: {
+    color: "rgba(255, 255, 255, 0.8)",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  modeTabTextActive: {
+    color: "#000000",
+  },
+  invisiblePlaceholder: {
+    width: 36,
+  },
+  loadingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(15, 23, 42, 0.85)",
+    zIndex: 12,
+  },
+  spinner: {
+    marginBottom: SPACING.md,
+  },
+  loadingOverlayText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "500",
+    textAlign: "center",
+    lineHeight: 20,
+  },
+  simulatedIndicator: {
+    position: "absolute",
+    top: 70,
+    alignSelf: "center",
+    backgroundColor: "rgba(16, 185, 129, 0.8)",
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    zIndex: 10,
+  },
+  simulatedText: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  hudOverlay: {
+    position: "absolute",
+    bottom: SPACING.lg,
+    left: SPACING.md,
+    right: SPACING.md,
+    zIndex: 10,
+  },
+  statsPanel: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: SPACING.md,
+  },
+  statPill: {
+    flex: 1,
+    backgroundColor: "rgba(15, 23, 42, 0.65)",
+    borderRadius: SIZES.radiusSm,
+    paddingVertical: SPACING.sm,
+    marginHorizontal: 4,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.15)",
+  },
+  statLabel: {
+    fontSize: 9,
+    fontWeight: "600",
+    color: "rgba(255, 255, 255, 0.6)",
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  statVal: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#FFFFFF",
+  },
+  feedbackPanel: {
+    backgroundColor: "rgba(15, 23, 42, 0.65)",
+    borderRadius: SIZES.radiusSm,
+    padding: SPACING.md,
+    marginBottom: SPACING.md,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.15)",
+    minHeight: 70,
+  },
+  feedbackPanelError: {
+    backgroundColor: "rgba(239, 68, 68, 0.2)",
+    borderColor: "rgba(239, 68, 68, 0.5)",
+  },
+  panelTitle: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "rgba(255, 255, 255, 0.5)",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 6,
+  },
+  noFeedback: {
+    fontSize: 13,
+    color: "rgba(255, 255, 255, 0.7)",
+    fontStyle: "italic",
+  },
+  feedbackLine: {
+    fontSize: 13,
+    color: "#FFFFFF",
+    fontWeight: "500",
+    marginBottom: 3,
+  },
+  feedbackLineError: {
+    color: "#FCA5A5",
+  },
+  sessionButton: {
+    height: SIZES.inputHeight,
+    borderRadius: SIZES.radiusSm,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  startButton: {
+    backgroundColor: "#FFFFFF",
+  },
+  stopButton: {
+    backgroundColor: "#EF4444",
+  },
+  sessionButtonText: {
+    color: "#0F172A",
+    fontSize: 14,
+    fontWeight: "600",
+  },
 });

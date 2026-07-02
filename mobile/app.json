@@ -1,27 +1,17 @@
 {
   "expo": {
-    "name": "Fitness AI",
-    "slug": "fitness-ai",
-    "sdkVersion": "54.0.0",
+    "name": "mobile",
+    "slug": "mobile",
     "version": "1.0.0",
-    "runtimeVersion": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#FFFBF5"
-    },
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.fitai.app"
+      "supportsTablet": true
     },
     "android": {
-      "package": "com.fitai.app",
-      "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#FFFBF5",
+        "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -30,14 +20,6 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    },
-    "plugins": [
-      "expo-font"
-    ],
-    "extra": {
-      "eas": {
-        "projectId": "YOUR_EAS_PROJECT_ID"
-      }
     }
   }
 }
