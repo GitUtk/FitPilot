@@ -1,5 +1,3 @@
-![FitPilot Icon](mobile/assets/icon.png)
-
 # FitPilot
 
 FitPilot is a modern, professional-grade metabolic tracking and biomechanical training assistant. It combines a FastAPI MongoDB Atlas backend with a React Native Expo TypeScript mobile application.

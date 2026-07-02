@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
+    "name": "FitPilot",
+    "slug": "fitpilot",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -31,6 +31,21 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow FitPilot to access the camera for real-time biomechanical analysis and form correction.",
+          "microphonePermission": "Allow FitPilot to access the microphone for audio instructions."
+        }
+      ],
+      [
+        "expo-sensors",
+        {
+          "motionPermission": "Allow FitPilot to access motion sensors for live step tracking and active calorie estimation."
+        }
+      ]
+    ]
   }
 }

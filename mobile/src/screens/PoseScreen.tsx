@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
   StatusBar,
 } from "react-native";
-import { CameraView } from "expo-camera";
+import { Camera, CameraView } from "expo-camera";
 import { COLORS, SPACING, SIZES } from "../styles/theme";
 
 type ExerciseMode = "squat" | "curl";
@@ -146,8 +146,14 @@ export const PoseScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   useEffect(() => {
     const getPermissions = async () => {
       if (Platform.OS !== "web") {
-        const { status } = await CameraView.requestCameraPermissionsAsync();
-        setHasPermission(status === "granted");
+        try {
+          const { status: cameraStatus } = await Camera.requestCameraPermissionsAsync();
+          const { status: audioStatus } = await Camera.requestMicrophonePermissionsAsync();
+          setHasPermission(cameraStatus === "granted" && audioStatus === "granted");
+        } catch (e) {
+          console.log("Error requesting camera/microphone permissions:", e);
+          setHasPermission(false);
+        }
       } else {
         setHasPermission(true);
         loadMediaPipe();

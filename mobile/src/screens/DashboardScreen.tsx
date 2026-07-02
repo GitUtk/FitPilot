@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Pedometer } from "expo-sensors";
-import { CameraView } from "expo-camera";
+import { Camera } from "expo-camera";
 import { useAuth } from "../context/AuthContext";
 import { apiService } from "../services/api";
 import { COLORS, SPACING, SIZES } from "../styles/theme";
@@ -48,9 +48,10 @@ export const DashboardScreen: React.FC<{ navigation: any }> = ({ navigation }) =
     const requestAndSubscribe = async () => {
       if (Platform.OS !== "web") {
         try {
-          await CameraView.requestCameraPermissionsAsync();
+          await Camera.requestCameraPermissionsAsync();
+          await Camera.requestMicrophonePermissionsAsync();
         } catch (e) {
-          console.log("Error requesting camera permission:", e);
+          console.log("Error requesting camera/audio permissions:", e);
         }
         try {
           await Pedometer.requestPermissionsAsync();
