@@ -10,6 +10,8 @@ jobs:
   build:
     name: Build & Sign Android APK
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     
     steps:
       - name: Checkout Repository
@@ -162,3 +164,15 @@ jobs:
         with:
           name: fitpilot-v${{ env.VERSION }}-b${{ env.VERSION_CODE }}
           path: mobile/android/app/build/outputs/apk/release/fitpilot-v${{ env.VERSION }}-b${{ env.VERSION_CODE }}.apk
+
+      - name: Publish to GitHub Releases
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.VERSION }}
+          name: Release v${{ env.VERSION }}
+          draft: false
+          prerelease: false
+          files: mobile/android/app/build/outputs/apk/release/fitpilot-v${{ env.VERSION }}-b${{ env.VERSION_CODE }}.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
