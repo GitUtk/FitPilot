@@ -11,6 +11,7 @@ import {
   Platform,
   TouchableWithoutFeedback,
   Keyboard,
+  StatusBar,
 } from "react-native";
 import { useAuth } from "../context/AuthContext";
 import { COLORS, SPACING, SIZES } from "../styles/theme";
@@ -125,6 +126,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
   },
   inner: {
     flex: 1,

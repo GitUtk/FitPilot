@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Pedometer } from "expo-sensors";
+import { CameraView } from "expo-camera";
 import { useAuth } from "../context/AuthContext";
 import { apiService } from "../services/api";
 import { COLORS, SPACING, SIZES } from "../styles/theme";
@@ -44,7 +45,20 @@ export const DashboardScreen: React.FC<{ navigation: any }> = ({ navigation }) =
     fetchData();
 
     let subscription: any;
-    const subscribePedometer = async () => {
+    const requestAndSubscribe = async () => {
+      if (Platform.OS !== "web") {
+        try {
+          await CameraView.requestCameraPermissionsAsync();
+        } catch (e) {
+          console.log("Error requesting camera permission:", e);
+        }
+        try {
+          await Pedometer.requestPermissionsAsync();
+        } catch (e) {
+          console.log("Error requesting pedometer permission:", e);
+        }
+      }
+
       try {
         const isAvailable = await Pedometer.isAvailableAsync();
         setIsPedometerAvailable(String(isAvailable));
@@ -66,7 +80,7 @@ export const DashboardScreen: React.FC<{ navigation: any }> = ({ navigation }) =
       }
     };
 
-    subscribePedometer();
+    requestAndSubscribe();
 
     return () => {
       if (subscription) {
@@ -292,6 +306,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
   },
   topBar: {
     flexDirection: "row",

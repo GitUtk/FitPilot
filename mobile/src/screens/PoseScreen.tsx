@@ -7,8 +7,9 @@ import {
   Platform,
   SafeAreaView,
   ActivityIndicator,
+  StatusBar,
 } from "react-native";
-import { Camera, CameraView } from "expo-camera";
+import { CameraView } from "expo-camera";
 import { COLORS, SPACING, SIZES } from "../styles/theme";
 
 type ExerciseMode = "squat" | "curl";
@@ -145,7 +146,7 @@ export const PoseScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   useEffect(() => {
     const getPermissions = async () => {
       if (Platform.OS !== "web") {
-        const { status } = await Camera.requestCameraPermissionsAsync();
+        const { status } = await CameraView.requestCameraPermissionsAsync();
         setHasPermission(status === "granted");
       } else {
         setHasPermission(true);
@@ -589,7 +590,7 @@ export const PoseScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             />
           </View>
         ) : (
-          <View style={StyleSheet.absoluteFillObject}>
+          <View style={styles.fullscreenNativeCameraContainer}>
             <CameraView style={styles.fullscreenNativeCamera} facing="front" />
             {isActive && simulatedPoints && (
               <SkeletonOverlay points={simulatedPoints} isFormCorrect={isFormCorrect} />
@@ -728,16 +729,19 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
-  fullscreenNativeCamera: {
+  fullscreenNativeCameraContainer: {
     position: "absolute",
     top: 0,
     left: 0,
     width: "100%",
     height: "100%",
   },
+  fullscreenNativeCamera: {
+    flex: 1,
+  },
   headerOverlay: {
     position: "absolute",
-    top: Platform.OS === "ios" ? 10 : 20,
+    top: Platform.OS === "ios" ? 10 : (StatusBar.currentHeight || 24) + 10,
     left: 0,
     right: 0,
     flexDirection: "row",
