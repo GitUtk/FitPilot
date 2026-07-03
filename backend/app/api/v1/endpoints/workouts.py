@@ -1,9 +1,19 @@
+from fastapi import WebSocket, WebSocketDisconnect
+import base64
+import cv2
+import numpy as np
+
+from app.services.bicep_counter import process_frame
+
+from app.services.squat_counter import process_frame as process_squat_frame
+
 from typing import Any, List
 from datetime import datetime, timezone
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, status
 from app.api import deps
 from app.schemas.workout import WorkoutCreate, WorkoutResponse, WorkoutStats
+
 
 router = APIRouter()
 
@@ -80,3 +90,74 @@ async def get_workout_stats(current_user = Depends(deps.get_current_user), db = 
         "total_reps": total_reps,
         "average_intensity": average_intensity,
     }
+@router.websocket("/ws/bicep")
+async def websocket_bicep(websocket: WebSocket):
+
+    await websocket.accept()
+
+    print("Client Connected")
+
+    try:
+
+        while True:
+
+            # React Native se base64 image receive hogi
+            data = await websocket.receive_text()
+
+            # base64 -> bytes
+            image_bytes = base64.b64decode(data)
+
+            # bytes -> numpy
+            np_arr = np.frombuffer(image_bytes, np.uint8)
+
+            # numpy -> cv2 image
+            frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+
+            if frame is None:
+                await websocket.send_json({
+                    "error": "Invalid Frame"
+                })
+                continue
+
+            result = process_frame(frame)
+
+            await websocket.send_json(result)
+
+    except WebSocketDisconnect:
+        print("Client Disconnected")
+
+
+@router.websocket("/ws/squat")
+async def websocket_squat(websocket: WebSocket):
+
+    await websocket.accept()
+
+    print("Squat Client Connected")
+
+    try:
+
+        while True:
+
+            data = await websocket.receive_text()
+
+            image_bytes = base64.b64decode(data)
+
+            np_arr = np.frombuffer(image_bytes, np.uint8)
+
+            frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+
+            if frame is None:
+
+                await websocket.send_json({
+                    "error": "Invalid Frame"
+                })
+
+                continue
+
+            result = process_squat_frame(frame)
+
+            await websocket.send_json(result)
+
+    except WebSocketDisconnect:
+
+        print("Squat Client Disconnected")
