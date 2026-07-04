@@ -1,11 +1,6 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { StyleSheet, View, Text, Platform } from "react-native";
-import { WebView } from "react-native-webview";
-import ReactNativeMediapipePose, {
-  ReactNativeMediapipePoseView,
-  PoseDetectionResult,
-} from "@gymbrosinc/react-native-mediapipe-pose";
-import { MOBILE_POSE_HTML } from "../utils/PoseHtml";
+import { Camera } from "expo-camera";
 
 export interface PoseUpdateData {
   reps: number;
@@ -23,19 +18,13 @@ export interface QuickPoseCameraWrapperProps {
   style?: any;
 }
 
-// Helper to calculate 2D angle between three points: p1, p2 (vertex), p3
-const calculateAngle = (
-  p1: { x: number; y: number },
-  p2: { x: number; y: number },
-  p3: { x: number; y: number }
-) => {
-  const radians =
-    Math.atan2(p3.y - p2.y, p3.x - p2.x) - Math.atan2(p1.y - p2.y, p1.x - p2.x);
-  let angle = Math.abs((radians * 180.0) / Math.PI);
-  if (angle > 180.0) {
-    angle = 360.0 - angle;
-  }
-  return angle;
+// Dynamically resolve WebSocket URL from API backend base
+const BASE_WS_URL = "wss://fit-pilot-backend.vercel.app/api/v1";
+
+const getWsUrl = (mode: "squat" | "curl") => {
+  // If running locally, you can change this to "ws://localhost:8000/api/v1"
+  const exercisePath = mode === "curl" ? "bicep" : "squat";
+  return `${BASE_WS_URL}/workouts/ws/${exercisePath}`;
 };
 
 export const QuickPoseCameraWrapper: React.FC<QuickPoseCameraWrapperProps> = ({
@@ -44,244 +33,130 @@ export const QuickPoseCameraWrapper: React.FC<QuickPoseCameraWrapperProps> = ({
   onPoseUpdate,
   style,
 }) => {
-  const repsRef = useRef(0);
-  const repStateRef = useRef<"up" | "down">("up");
-  const webViewRef = useRef<WebView>(null);
+  const cameraRef = useRef<Camera>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+  const activeRef = useRef(isActive);
+  const [connectionStatus, setConnectionStatus] = useState<"disconnected" | "connecting" | "connected">("disconnected");
 
-  // Reset reps when exercise mode changes
   useEffect(() => {
-    repsRef.current = 0;
-    repStateRef.current = "up";
-    onPoseUpdate({
-      reps: 0,
-      kneeAngle: "--",
-      backAngle: "--",
-      elbowAngle: "--",
-      feedback: [],
-      isFormCorrect: true,
-    });
-  }, [exerciseMode]);
-
-  // Android WebView initialization postMessage
-  useEffect(() => {
-    if (Platform.OS === "android" && webViewRef.current) {
-      webViewRef.current.postMessage(
-        JSON.stringify({
-          type: "setup",
-          mode: exerciseMode,
-          isActive: isActive,
-        })
-      );
-    }
-  }, [exerciseMode, isActive]);
-
-  // Request camera permissions through package on iOS
-  useEffect(() => {
-    const requestPermission = async () => {
-      try {
-        if (Platform.OS === "ios") {
-          await ReactNativeMediapipePose.requestCameraPermissions();
-        }
-      } catch (e) {
-        console.log("Error requesting camera permissions via package:", e);
-      }
-    };
-    if (isActive) {
-      requestPermission();
-    }
+    activeRef.current = isActive;
   }, [isActive]);
 
-  // iOS-specific Pose Detection handler
-  const handlePoseDetected = (event: { nativeEvent: PoseDetectionResult }) => {
-    const { landmarks } = event.nativeEvent;
-    if (!landmarks || landmarks.length === 0) return;
-
-    const leftArmVis =
-      (landmarks[11]?.visibility || 0) +
-      (landmarks[13]?.visibility || 0) +
-      (landmarks[15]?.visibility || 0);
-    const rightArmVis =
-      (landmarks[12]?.visibility || 0) +
-      (landmarks[14]?.visibility || 0) +
-      (landmarks[16]?.visibility || 0);
-    const armSide = leftArmVis >= rightArmVis ? "left" : "right";
-
-    const shoulder = landmarks[armSide === "left" ? 11 : 12];
-    const elbow = landmarks[armSide === "left" ? 13 : 14];
-    const wrist = landmarks[armSide === "left" ? 15 : 16];
-    const hip = landmarks[armSide === "left" ? 23 : 24];
-
-    const leftLegVis =
-      (landmarks[23]?.visibility || 0) +
-      (landmarks[25]?.visibility || 0) +
-      (landmarks[27]?.visibility || 0);
-    const rightLegVis =
-      (landmarks[24]?.visibility || 0) +
-      (landmarks[26]?.visibility || 0) +
-      (landmarks[28]?.visibility || 0);
-    const legSide = leftLegVis >= rightLegVis ? "left" : "right";
-
-    const sHip = landmarks[legSide === "left" ? 23 : 24];
-    const sKnee = landmarks[legSide === "left" ? 25 : 26];
-    const sAnkle = landmarks[legSide === "left" ? 27 : 28];
-    const sShoulder = landmarks[legSide === "left" ? 11 : 12];
-
-    let kneeAngle: number | string = "--";
-    let backAngle: number | string = "--";
-    let elbowAngle: number | string = "--";
-    let feedback: string[] = [];
-    let isFormCorrect = true;
-
-    if (
-      shoulder &&
-      elbow &&
-      wrist &&
-      shoulder.visibility > 0.5 &&
-      elbow.visibility > 0.5 &&
-      wrist.visibility > 0.5
-    ) {
-      elbowAngle = Math.round(calculateAngle(shoulder, elbow, wrist));
+  // Handle WebSocket Connection and Camera Frame Streaming Loop
+  useEffect(() => {
+    if (!isActive) {
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+      setConnectionStatus("disconnected");
+      return;
     }
 
-    if (
-      sHip &&
-      sKnee &&
-      sAnkle &&
-      sHip.visibility > 0.5 &&
-      sKnee.visibility > 0.5 &&
-      sAnkle.visibility > 0.5
-    ) {
-      kneeAngle = Math.round(calculateAngle(sHip, sKnee, sAnkle));
-    }
+    setConnectionStatus("connecting");
+    const wsUrl = getWsUrl(exerciseMode);
+    console.log(`Connecting to WebSocket: ${wsUrl}`);
+    const ws = new WebSocket(wsUrl);
+    wsRef.current = ws;
 
-    const chosenHip = exerciseMode === "squat" ? sHip : hip;
-    const chosenShoulder = exerciseMode === "squat" ? sShoulder : shoulder;
-    if (
-      chosenHip &&
-      chosenShoulder &&
-      chosenHip.visibility > 0.5 &&
-      chosenShoulder.visibility > 0.5
-    ) {
-      const dx = chosenShoulder.x - chosenHip.x;
-      const dy = chosenShoulder.y - chosenHip.y;
-      const rad = Math.atan2(Math.abs(dx), Math.abs(dy));
-      const angleFromVertical = (rad * 180.0) / Math.PI;
-      backAngle = Math.round(180 - angleFromVertical);
-    }
+    let frameTimer: NodeJS.Timeout | null = null;
 
-    if (exerciseMode === "curl") {
-      if (typeof elbowAngle === "number") {
-        if (elbowAngle < 60) {
-          feedback.push("Good squeeze at top!");
-          if (repStateRef.current === "up") {
-            repStateRef.current = "down";
-          }
+    ws.onopen = () => {
+      console.log("WebSocket connection established successfully");
+      setConnectionStatus("connected");
+      
+      // Start the frame capture and transmission loop
+      startFrameStreaming();
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const result = JSON.parse(event.data);
+        if (result.error) {
+          console.warn("Backend error returned:", result.error);
+          return;
+        }
+
+        // Map backend response format to React Native state structure
+        if (exerciseMode === "curl") {
+          const reps = (result.left_reps || 0) + (result.right_reps || 0);
+          const feedback: string[] = [];
+          
+          if (result.left_stage) feedback.push(`Left stage: ${result.left_stage}`);
+          if (result.right_stage) feedback.push(`Right stage: ${result.right_stage}`);
+
+          onPoseUpdate({
+            reps,
+            kneeAngle: "--",
+            backAngle: "--",
+            elbowAngle: `L: ${result.left_angle ?? "--"}° | R: ${result.right_angle ?? "--"}°`,
+            feedback,
+            isFormCorrect: true, // Server manages counts, form alerts can be customized
+          });
         } else {
-          feedback.push("Curl: Lift weights upward.");
-          if (repStateRef.current === "down" && elbowAngle > 130) {
-            repStateRef.current = "up";
-            repsRef.current += 1;
+          // Squats
+          const feedback: string[] = [];
+          if (result.stage) feedback.push(`Stage: ${result.stage}`);
+          
+          onPoseUpdate({
+            reps: result.reps || 0,
+            kneeAngle: result.angle !== undefined ? `${result.angle}°` : "--",
+            backAngle: "--",
+            elbowAngle: "--",
+            feedback,
+            isFormCorrect: true,
+          });
+        }
+      } catch (e) {
+        console.error("Error parsing WebSocket response:", e);
+      }
+    };
+
+    ws.onerror = (err) => {
+      console.error("WebSocket error:", err);
+      setConnectionStatus("disconnected");
+    };
+
+    ws.onclose = () => {
+      console.log("WebSocket connection closed");
+      setConnectionStatus("disconnected");
+      if (frameTimer) clearTimeout(frameTimer);
+    };
+
+    const startFrameStreaming = async () => {
+      if (!activeRef.current || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+
+      try {
+        if (cameraRef.current) {
+          // Capture photo as compressed base64 to minimize network payload sizes
+          const photo = await cameraRef.current.takePictureAsync({
+            base64: true,
+            quality: 0.15,
+            skipProcessing: true,
+          });
+
+          if (photo?.base64 && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+            wsRef.current.send(photo.base64);
           }
         }
+      } catch (err) {
+        console.warn("Frame capture failed:", err);
       }
 
-      if (typeof backAngle === "number" && backAngle < 155) {
-        feedback.push("Avoid leaning back.");
-        isFormCorrect = false;
+      // Capture next frame in 100ms (~10 FPS target for real-time tracking)
+      if (activeRef.current) {
+        frameTimer = setTimeout(startFrameStreaming, 100);
       }
+    };
 
-      if (shoulder && elbow && hip) {
-        const shoulderToHipX = Math.abs(shoulder.x - hip.x);
-        const elbowToHipX = Math.abs(elbow.x - hip.x);
-        if (elbowToHipX > shoulderToHipX * 1.5) {
-          feedback.push("Keep elbows tucked to your side.");
-          isFormCorrect = false;
-        }
+    return () => {
+      activeRef.current = false;
+      if (frameTimer) clearTimeout(frameTimer);
+      if (ws) {
+        ws.close();
       }
-    } else if (exerciseMode === "squat") {
-      if (typeof kneeAngle === "number") {
-        if (kneeAngle < 110) {
-          feedback.push("Good depth!");
-          if (repStateRef.current === "up") {
-            repStateRef.current = "down";
-          }
-        } else {
-          feedback.push("Squat: Lower your hips.");
-          if (repStateRef.current === "down" && kneeAngle > 150) {
-            repStateRef.current = "up";
-            repsRef.current += 1;
-          }
-        }
-      }
-
-      if (typeof backAngle === "number" && backAngle < 145) {
-        feedback.push("Keep your back straight.");
-        isFormCorrect = false;
-      }
-
-      if (landmarks[25] && landmarks[26] && landmarks[23] && landmarks[24]) {
-        const kneeDist = Math.abs(landmarks[25].x - landmarks[26].x);
-        const hipDist = Math.abs(landmarks[23].x - landmarks[24].x);
-        if (kneeDist < hipDist * 0.8) {
-          feedback.push("Knees caving in — push them out.");
-          isFormCorrect = false;
-        }
-      }
-    }
-
-    onPoseUpdate({
-      reps: repsRef.current,
-      kneeAngle,
-      backAngle,
-      elbowAngle,
-      feedback,
-      isFormCorrect,
-    });
-  };
-
-  // Android WebView Message Handler
-  const handleWebViewMessage = (event: any) => {
-    try {
-      const data = JSON.parse(event.nativeEvent.data);
-      if (data.type === "pose") {
-        const kneeVal =
-          typeof data.kneeAngle === "number"
-            ? data.kneeAngle
-            : parseFloat(data.kneeAngle);
-        const elbowVal =
-          typeof data.elbowAngle === "number"
-            ? data.elbowAngle
-            : parseFloat(data.elbowAngle);
-
-        if (exerciseMode === "curl" && !isNaN(elbowVal)) {
-          if (repStateRef.current === "up" && elbowVal < 60) {
-            repStateRef.current = "down";
-          } else if (repStateRef.current === "down" && elbowVal > 130) {
-            repStateRef.current = "up";
-            repsRef.current += 1;
-          }
-        } else if (exerciseMode === "squat" && !isNaN(kneeVal)) {
-          if (repStateRef.current === "up" && kneeVal < 110) {
-            repStateRef.current = "down";
-          } else if (repStateRef.current === "down" && kneeVal > 150) {
-            repStateRef.current = "up";
-            repsRef.current += 1;
-          }
-        }
-
-        onPoseUpdate({
-          reps: repsRef.current,
-          kneeAngle: data.kneeAngle,
-          backAngle: data.backAngle,
-          elbowAngle: data.elbowAngle,
-          feedback: data.feedback || [],
-          isFormCorrect: data.isFormCorrect ?? true,
-        });
-      }
-    } catch (e) {
-      console.log("Error parsing WebView message:", e);
-    }
-  };
+    };
+  }, [isActive, exerciseMode]);
 
   if (!isActive) {
     return (
@@ -291,42 +166,28 @@ export const QuickPoseCameraWrapper: React.FC<QuickPoseCameraWrapperProps> = ({
     );
   }
 
-  if (Platform.OS === "android") {
-    return (
-      <WebView
-        ref={webViewRef}
-        originWhitelist={["*"]}
-        source={{ html: MOBILE_POSE_HTML, baseUrl: "https://localhost" }}
-        style={style || styles.camera}
-        javaScriptEnabled={true}
-        domStorageEnabled={true}
-        allowsInlineMediaPlayback={true}
-        mediaPlaybackRequiresUserAction={false}
-        onMessage={handleWebViewMessage}
-        {...({
-          onPermissionRequest: (event: any) => {
-            event.grant(event.resources);
-          }
-        } as any)}
-      />
-    );
-  }
-
-  // iOS Native MediaPipe
   return (
-    <ReactNativeMediapipePoseView
-      style={style || styles.camera}
-      cameraType="front"
-      enablePoseDetection={true}
-      enablePoseDataStreaming={true}
-      targetFPS={30}
-      autoAdjustFPS={true}
-      onPoseDetected={handlePoseDetected}
-    />
+    <View style={styles.container}>
+      <Camera
+        ref={cameraRef}
+        style={style || styles.camera}
+        type={Camera.Constants.Type.front}
+      />
+      <View style={styles.statusOverlay}>
+        <View style={[styles.statusDot, connectionStatus === "connected" ? styles.statusDotConnected : connectionStatus === "connecting" ? styles.statusDotConnecting : null]} />
+        <Text style={styles.statusText}>
+          {connectionStatus === "connected" ? "Connected" : connectionStatus === "connecting" ? "Syncing..." : "Disconnected"}
+        </Text>
+      </View>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    position: "relative",
+  },
   camera: {
     flex: 1,
   },
@@ -340,5 +201,34 @@ const styles = StyleSheet.create({
     color: "rgba(255, 255, 255, 0.4)",
     fontSize: 14,
     fontWeight: "500",
+  },
+  statusOverlay: {
+    position: "absolute",
+    top: 70,
+    alignSelf: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#ef4444",
+    marginRight: 6,
+  },
+  statusDotConnected: {
+    backgroundColor: "#10b981",
+  },
+  statusDotConnecting: {
+    backgroundColor: "#f59e0b",
+  },
+  statusText: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "600",
   },
 });

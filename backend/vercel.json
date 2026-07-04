@@ -1,15 +1,17 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "app/main.py",
-      "use": "@vercel/python"
+  "services": {
+    "backend": {
+      "root": ".",
+      "entrypoint": "app/main.py"
     }
-  ],
-  "routes": [
+  },
+  "rewrites": [
     {
-      "src": "/(.*)",
-      "dest": "app/main.py"
+      "source": "/(.*)",
+      "destination": {
+        "type": "service",
+        "service": "backend"
+      }
     }
   ]
 }
