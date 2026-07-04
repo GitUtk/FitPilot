@@ -1,6 +1,6 @@
 import { Platform } from "react-native";
 
-const BASE_URL = "https://fit-pilot-backend.vercel.app/api/v1";
+const BASE_URL = "https://fitpilot-backend-mc6f.onrender.com/api/v1";
 
 export const apiService = {
   async signup(email: string, password: string, fullName?: string) {
