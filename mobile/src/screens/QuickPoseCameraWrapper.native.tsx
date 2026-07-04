@@ -19,7 +19,7 @@ export interface QuickPoseCameraWrapperProps {
 }
 
 // Dynamically resolve WebSocket URL from API backend base
-const BASE_WS_URL = "wss://fitpilot-backend-mc6f.onrender.com/api/v1";
+const BASE_WS_URL = "wss://fitpilot-dips.onrender.com/api/v1";
 
 const getWsUrl = (mode: "squat" | "curl") => {
   // If running locally, you can change this to "ws://localhost:8000/api/v1"
