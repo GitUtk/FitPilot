@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FitPilot - Real-Time Pose Detection Test</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg: #030712;
+      --card-bg: rgba(17, 24, 39, 0.6);
+      --border: rgba(255, 255, 255, 0.08);
+      --primary: #06b6d4;
+      --primary-glow: rgba(6, 182, 212, 0.15);
+      --success: #10b981;
+      --success-glow: rgba(16, 185, 129, 0.15);
+      --error: #ef4444;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Outfit', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      background-image:
+        radial-gradient(circle at 10% 20%, rgba(6, 182, 212, 0.05) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(99, 102, 241, 0.05) 0%, transparent 40%);
+    }
+
+    header {
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: rgba(3, 7, 18, 0.8);
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .logo-icon {
+      width: 2.25rem;
+      height: 2.25rem;
+      background: linear-gradient(135deg, var(--primary), #6366f1);
+      border-radius: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 1.25rem;
+      color: #fff;
+      box-shadow: 0 0 15px rgba(6, 182, 212, 0.4);
+    }
+
+    .logo-text {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 700;
+      background: linear-gradient(to right, #fff, #9ca3af);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.03em;
+    }
+
+    .server-status {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 0.5rem 1rem;
+      border-radius: 2rem;
+      border: 1px solid var(--border);
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+
+    .status-indicator {
+      width: 0.5rem;
+      height: 0.5rem;
+      border-radius: 50%;
+      background-color: var(--error);
+      box-shadow: 0 0 8px var(--error);
+      transition: all 0.3s ease;
+    }
+
+    .status-indicator.connected {
+      background-color: var(--success);
+      box-shadow: 0 0 8px var(--success);
+    }
+
+    .status-indicator.connecting {
+      background-color: #f59e0b;
+      box-shadow: 0 0 8px #f59e0b;
+    }
+
+    main {
+      flex: 1;
+      padding: 2rem;
+      display: grid;
+      grid-template-columns: 1fr 350px;
+      gap: 2rem;
+      max-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 1024px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .workspace {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .camera-container {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16/9;
+      background: #000;
+      border-radius: 1rem;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    #webcam {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+      /* Mirror camera feed */
+    }
+
+    .camera-placeholder {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #0b0f19;
+      color: var(--text-muted);
+      gap: 1rem;
+      z-index: 2;
+      transition: opacity 0.5s ease;
+    }
+
+    .camera-placeholder svg {
+      width: 4rem;
+      height: 4rem;
+      stroke: var(--text-muted);
+      opacity: 0.5;
+    }
+
+    .control-panel {
+      background: var(--card-bg);
+      border-radius: 1rem;
+      border: 1px solid var(--border);
+      padding: 1.5rem;
+      backdrop-filter: blur(16px);
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      height: fit-content;
+    }
+
+    .panel-section {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .panel-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .exercise-selector {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+
+    .selector-btn {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 0.75rem 1rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+
+    .selector-btn:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+    }
+
+    .selector-btn.active {
+      background: var(--primary-glow);
+      border-color: var(--primary);
+      color: var(--primary);
+      box-shadow: 0 0 15px rgba(6, 182, 212, 0.1);
+    }
+
+    .action-btn {
+      background: linear-gradient(135deg, var(--primary), #6366f1);
+      border: none;
+      color: #fff;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(6, 182, 212, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      font-family: inherit;
+    }
+
+    .action-btn:hover {
+      opacity: 0.9;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(6, 182, 212, 0.4);
+    }
+
+    .action-btn.active {
+      background: linear-gradient(135deg, #ef4444, #b91c1c);
+      box-shadow: 0 4px 15px rgba(239, 68, 68, 0.25);
+    }
+
+    .stats-container {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+    }
+
+    .stat-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .stat-card.reps-card {
+      background: var(--success-glow);
+      border-color: var(--success);
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.25rem;
+    }
+
+    .reps-card .stat-label {
+      color: var(--success);
+    }
+
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 800;
+      font-family: 'Space Grotesk', sans-serif;
+    }
+
+    .reps-card .stat-value {
+      font-size: 2.25rem;
+      color: var(--success);
+    }
+
+    .feedback-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      min-height: 120px;
+    }
+
+    .feedback-title {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+      font-weight: 600;
+    }
+
+    .feedback-text {
+      font-size: 1rem;
+      line-height: 1.5;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .feedback-stage {
+      display: inline-block;
+      align-self: flex-start;
+      background: var(--primary-glow);
+      color: var(--primary);
+      padding: 0.25rem 0.75rem;
+      border-radius: 2rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      border: 1px solid rgba(6, 182, 212, 0.3);
+      margin-top: auto;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <div class="logo-container">
+      <div class="logo-icon">P</div>
+      <div class="logo-text">FitPilot AI</div>
+    </div>
+    <div class="server-status">
+      <span class="status-indicator" id="status-dot"></span>
+      <span id="status-text">Disconnected</span>
+    </div>
+  </header>
+
+  <main>
+    <div class="workspace">
+      <div class="camera-container">
+        <video id="webcam" autoplay playsinline muted></video>
+        <div class="camera-placeholder" id="placeholder">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+            <circle cx="12" cy="13" r="4"></circle>
+          </svg>
+          <p>Grant camera permissions and click Start below</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="control-panel">
+      <div class="panel-section">
+        <span class="panel-label">Select Exercise</span>
+        <div class="exercise-selector">
+          <button class="selector-btn active" id="btn-squat" onclick="setMode('squat')">Squat</button>
+          <button class="selector-btn" id="btn-curl" onclick="setMode('curl')">Bicep Curl</button>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <span class="panel-label">Live Telemetry</span>
+        <div class="stats-container">
+          <div class="stat-card">
+            <span class="stat-label" id="angle-label">Knee Angle</span>
+            <span class="stat-value" id="val-angle">--°</span>
+          </div>
+          <div class="stat-card reps-card">
+            <span class="stat-label">Reps</span>
+            <span class="stat-value" id="val-reps">0</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Sync</span>
+            <span class="stat-value" style="font-size: 1.15rem; color: var(--primary)" id="val-fps">0 FPS</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="feedback-card">
+        <span class="feedback-title">AI Biomechanical Coach</span>
+        <div class="feedback-text" id="coach-feedback">Ready to analyze posture...</div>
+        <div class="feedback-stage id-stage hidden" id="coach-stage">Up</div>
+      </div>
+
+      <button class="action-btn" id="action-trigger" onclick="toggleScanner()">
+        <svg style="width: 1.25rem; height: 1.25rem" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+          </path>
+        </svg>
+        <span>Start AI Scanner</span>
+      </button>
+    </div>
+  </main>
+
+  <script>
+    const RENDER_WS_URL = "wss://fitpilot-dips.onrender.com/api/v1/workouts/ws";
+
+    let active = false;
+    let exerciseMode = "squat";
+    let stream = null;
+    let ws = null;
+    let frameLoop = null;
+    let frameCount = 0;
+    let fpsTimer = null;
+    let lastFrameTime = Date.now();
+
+    const video = document.getElementById("webcam");
+    const placeholder = document.getElementById("placeholder");
+    const actionBtn = document.getElementById("action-trigger");
+    const statusDot = document.getElementById("status-dot");
+    const statusText = document.getElementById("status-text");
+
+    const valReps = document.getElementById("val-reps");
+    const valAngle = document.getElementById("val-angle");
+    const valFps = document.getElementById("val-fps");
+    const angleLabel = document.getElementById("angle-label");
+    const coachFeedback = document.getElementById("coach-feedback");
+    const coachStage = document.getElementById("coach-stage");
+
+    function setMode(mode) {
+      if (active) {
+        alert("Please stop the scanner before switching exercises.");
+        return;
+      }
+      exerciseMode = mode;
+
+      document.getElementById("btn-squat").classList.toggle("active", mode === "squat");
+      document.getElementById("btn-curl").classList.toggle("active", mode === "curl");
+
+      angleLabel.innerText = mode === "squat" ? "Knee Angle" : "Elbow Angle";
+      resetStats();
+    }
+
+    function resetStats() {
+      valReps.innerText = "0";
+      valAngle.innerText = "--°";
+      coachFeedback.innerText = "Ready to analyze posture...";
+      coachStage.classList.add("hidden");
+    }
+
+    async function toggleScanner() {
+      if (active) {
+        stopScanner();
+      } else {
+        await startScanner();
+      }
+    }
+
+    async function startScanner() {
+      try {
+        resetStats();
+
+        // Request camera
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 640, height: 480, facingMode: "user" },
+          audio: false
+        });
+
+        video.srcObject = stream;
+        placeholder.style.opacity = 0;
+        setTimeout(() => placeholder.classList.add("hidden"), 500);
+
+        // Connect WebSocket
+        const endpoint = exerciseMode === "squat" ? "squat" : "bicep";
+        const wsUrl = `${RENDER_WS_URL}/${endpoint}`;
+
+        updateStatus("connecting", "Connecting...");
+        ws = new WebSocket(wsUrl);
+
+        ws.onopen = () => {
+          updateStatus("connected", "Connected");
+          active = true;
+
+          actionBtn.classList.add("active");
+          actionBtn.innerHTML = `
+            <svg style="width: 1.25rem; height: 1.25rem" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"></path>
+            </svg>
+            <span>Stop Scanner</span>
+          `;
+
+          startFrameLoop();
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            frameCount++;
+
+            if (exerciseMode === "squat") {
+              valReps.innerText = data.reps ?? "0";
+              valAngle.innerText = data.angle !== undefined ? `${data.angle}°` : "--°";
+              coachFeedback.innerText = data.stage ? `Squat status: Posture looks good.` : "Scanning posture...";
+              if (data.stage) {
+                coachStage.innerText = data.stage;
+                coachStage.classList.remove("hidden");
+              }
+            } else {
+              const reps = (data.left_reps || 0) + (data.right_reps || 0);
+              valReps.innerText = reps;
+              valAngle.innerText = data.left_angle !== undefined ? `L: ${data.left_angle}° R: ${data.right_angle}°` : "--°";
+
+              let feedback = "";
+              if (data.left_stage) feedback += `Left arm: ${data.left_stage}. `;
+              if (data.right_stage) feedback += `Right arm: ${data.right_stage}.`;
+              coachFeedback.innerText = feedback || "Lift curl weights upward.";
+
+              if (data.left_stage || data.right_stage) {
+                coachStage.innerText = `L: ${data.left_stage || '--'} | R: ${data.right_stage || '--'}`;
+                coachStage.classList.remove("hidden");
+              }
+            }
+          } catch (e) {
+            console.error("Error parsing frame response:", e);
+          }
+        };
+
+        ws.onerror = (err) => {
+          console.error("WebSocket error:", err);
+          stopScanner();
+        };
+
+        ws.onclose = () => {
+          console.log("WebSocket closed");
+          stopScanner();
+        };
+
+      } catch (err) {
+        console.error("Camera access failed:", err);
+        alert("Failed to access camera: " + err.message);
+        stopScanner();
+      }
+    }
+
+    function stopScanner() {
+      active = false;
+      updateStatus("disconnected", "Disconnected");
+
+      actionBtn.classList.remove("active");
+      actionBtn.innerHTML = `
+        <svg style="width: 1.25rem; height: 1.25rem" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span>Start AI Scanner</span>
+      `;
+
+      if (frameLoop) {
+        clearTimeout(frameLoop);
+        frameLoop = null;
+      }
+
+      if (fpsTimer) {
+        clearInterval(fpsTimer);
+        fpsTimer = null;
+      }
+      valFps.innerText = "0 FPS";
+
+      if (ws) {
+        ws.close();
+        ws = null;
+      }
+
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+      }
+
+      video.srcObject = null;
+      placeholder.classList.remove("hidden");
+      placeholder.style.opacity = 1;
+    }
+
+    function startFrameLoop() {
+      // Setup FPS tracker
+      fpsTimer = setInterval(() => {
+        valFps.innerText = `${frameCount} FPS`;
+        frameCount = 0;
+      }, 1000);
+
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+
+      const captureAndSend = () => {
+        if (!active || !ws || ws.readyState !== WebSocket.OPEN) return;
+
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+          // Downscale to 320x240 for optimal real-time performance and reduced network footprint
+          canvas.width = 320;
+          canvas.height = 240;
+
+          // Draw video frame to canvas (applying mirror flip)
+          ctx.translate(canvas.width, 0);
+          ctx.scale(-1, 1);
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform
+
+          // Export compressed JPEG base64
+          const base64Image = canvas.toDataURL("image/jpeg", 0.3);
+          const rawBase64 = base64Image.split(",")[1];
+
+          try {
+            ws.send(rawBase64);
+          } catch (e) {
+            console.error("Failed to send frame:", e);
+          }
+        }
+
+        // Loop at ~15 FPS target
+        frameLoop = setTimeout(captureAndSend, 66);
+      };
+
+      captureAndSend();
+    }
+
+    function updateStatus(status, text) {
+      statusDot.className = "status-indicator " + status;
+      statusText.innerText = text;
+    }
+  </script>
+</body>
+
+</html>

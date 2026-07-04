@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from "react";
 import { StyleSheet, View, Text, Platform } from "react-native";
-import { Camera } from "expo-camera";
+import { CameraView } from "expo-camera";
 
 export interface PoseUpdateData {
   reps: number;
@@ -33,7 +33,7 @@ export const QuickPoseCameraWrapper: React.FC<QuickPoseCameraWrapperProps> = ({
   onPoseUpdate,
   style,
 }) => {
-  const cameraRef = useRef<Camera>(null);
+  const cameraRef = useRef<CameraView>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const activeRef = useRef(isActive);
   const [connectionStatus, setConnectionStatus] = useState<"disconnected" | "connecting" | "connected">("disconnected");
@@ -168,10 +168,10 @@ export const QuickPoseCameraWrapper: React.FC<QuickPoseCameraWrapperProps> = ({
 
   return (
     <View style={styles.container}>
-      <Camera
+      <CameraView
         ref={cameraRef}
         style={style || styles.camera}
-        type={Camera.Constants.Type.front}
+        facing="front"
       />
       <View style={styles.statusOverlay}>
         <View style={[styles.statusDot, connectionStatus === "connected" ? styles.statusDotConnected : connectionStatus === "connecting" ? styles.statusDotConnecting : null]} />
