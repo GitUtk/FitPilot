@@ -9,7 +9,8 @@ BASE_DIR = Path(__file__).resolve().parent
 MODEL_PATH = BASE_DIR.parent / "models" / "pose_landmarker_heavy.task"
 
 base_options = python.BaseOptions(
-    model_asset_path=str(MODEL_PATH)
+    model_asset_path=str(MODEL_PATH),
+    delegate=python.BaseOptions.Delegate.CPU
 )
 options = vision.PoseLandmarkerOptions(
     base_options=base_options,
