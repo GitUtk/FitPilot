@@ -59,18 +59,22 @@ class ExpoPoseDetectorView(context: Context, appContext: AppContext) : ExpoView(
     private var lastFeedback = listOf<String>()
 
     init {
-        // Layout views
-        previewView.layoutParams = FrameLayout.LayoutParams(
-            FrameLayout.LayoutParams.MATCH_PARENT,
-            FrameLayout.LayoutParams.MATCH_PARENT
-        )
-        overlayView.layoutParams = FrameLayout.LayoutParams(
-            FrameLayout.LayoutParams.MATCH_PARENT,
-            FrameLayout.LayoutParams.MATCH_PARENT
-        )
-
+        // Setup scaling and configuration for PreviewView to fill the screen
+        previewView.scaleType = PreviewView.ScaleType.FILL_CENTER
+        
         addView(previewView)
         addView(overlayView)
+    }
+
+    override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
+        super.onLayout(changed, left, top, right, bottom)
+        val w = right - left
+        val h = bottom - top
+        
+        // Explicitly size child views to fill the parent.
+        // This is critical in React Native to prevent children from defaulting to 0x0 size.
+        previewView.layout(0, 0, w, h)
+        overlayView.layout(0, 0, w, h)
     }
 
     fun setExerciseMode(mode: String) {
@@ -83,12 +87,27 @@ class ExpoPoseDetectorView(context: Context, appContext: AppContext) : ExpoView(
     fun setIsActive(active: Boolean) {
         if (this.isActive != active) {
             this.isActive = active
-            if (active) {
-                startCamera()
-            } else {
-                stopCamera()
+            if (isAttachedToWindow) {
+                if (active) {
+                    startCamera()
+                } else {
+                    stopCamera()
+                }
             }
         }
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        if (isActive) {
+            startCamera()
+        }
+    }
+
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        stopCamera()
+        poseDetector.close()
     }
 
     private fun resetCounters() {
@@ -106,14 +125,8 @@ class ExpoPoseDetectorView(context: Context, appContext: AppContext) : ExpoView(
     }
 
     private fun getLifecycleOwner(): LifecycleOwner {
-        var context = context
-        while (context is android.content.ContextWrapper) {
-            if (context is LifecycleOwner) {
-                return context
-            }
-            context = context.baseContext
-        }
-        throw IllegalStateException("Context is not a LifecycleOwner")
+        val activity = appContext.currentActivity ?: throw IllegalStateException("Current activity is null")
+        return activity as? LifecycleOwner ?: throw IllegalStateException("Activity is not a LifecycleOwner")
     }
 
     private fun startCamera() {
@@ -183,12 +196,6 @@ class ExpoPoseDetectorView(context: Context, appContext: AppContext) : ExpoView(
             cameraProvider?.unbindAll()
             overlayView.clear()
         }
-    }
-
-    override fun onDetachedFromWindow() {
-        super.onDetachedFromWindow()
-        stopCamera()
-        poseDetector.close()
     }
 
     private fun calculateAngle(
