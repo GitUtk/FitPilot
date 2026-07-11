@@ -108,7 +108,7 @@ class MealLoggerFragment : Fragment() {
                 activity?.runOnUiThread {
                     btnSendChat.isEnabled = true
                     if (success && data != null) {
-                        val reply = data.optString("reply", "I've logged that for you.")
+                        val reply = data.optString("text", "I've logged that for you.")
                         addMessageBubble(reply, false)
                         
                         // If food items were parsed, let the user know by a toast
@@ -148,7 +148,7 @@ class MealLoggerFragment : Fragment() {
                     for (i in 0 until array.length()) {
                         val msg = array.getJSONObject(i)
                         val role = msg.optString("role", "")
-                        val text = msg.optString("content", "")
+                        val text = msg.optString("text", "")
                         addMessageBubble(text, role == "user")
                     }
                     scrollToBottom()
@@ -165,8 +165,8 @@ class MealLoggerFragment : Fragment() {
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply {
-                topMargin = 10
-                bottomMargin = 10
+                topMargin = 6
+                bottomMargin = 6
             }
             gravity = if (isUser) Gravity.END else Gravity.START
         }
@@ -176,26 +176,27 @@ class MealLoggerFragment : Fragment() {
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply {
-                width = 0
-                weight = 1f // limit size or wrap content
+                leftMargin = if (isUser) 56 else 0
+                rightMargin = if (isUser) 0 else 56
             }
             cardElevation = 0f
-            radius = 12f
-            setPadding(12, 8, 12, 8)
+            radius = 16f
+            setContentPadding(16, 12, 16, 12)
 
             if (isUser) {
                 setCardBackgroundColor(ContextCompat.getColorStateList(context, R.color.primary))
             } else {
                 setCardBackgroundColor(ContextCompat.getColorStateList(context, R.color.card_background))
                 setStrokeColor(ContextCompat.getColorStateList(context, R.color.border))
-                strokeWidth = 1
+                strokeWidth = 2
             }
         }
 
         val tv = TextView(context).apply {
             this.text = text
             setTextColor(ContextCompat.getColor(context, if (isUser) R.color.white else R.color.text_primary))
-            setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 13f)
+            setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 14f)
+            setLineSpacing(2f, 1.1f)
         }
 
         card.addView(tv)
