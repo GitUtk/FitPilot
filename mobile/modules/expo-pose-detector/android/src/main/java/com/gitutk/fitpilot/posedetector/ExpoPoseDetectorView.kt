@@ -17,6 +17,8 @@ import android.content.Context
 import android.graphics.Color
 import android.util.Log
 import android.widget.FrameLayout
+import android.view.Gravity
+import android.widget.TextView
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
@@ -48,6 +50,23 @@ class ExpoPoseDetectorView(context: Context, appContext: AppContext) : ExpoView(
     // Skeleton overlay must be explicitly transparent so it doesn't occlude the preview
     private val overlayView = PoseOverlayView(context).apply {
         setBackgroundColor(Color.TRANSPARENT)
+    }
+
+    // Diagnostic status text overlay to show initialization/error states directly on screen
+    private val statusTextView = TextView(context).apply {
+        setTextColor(Color.YELLOW)
+        textSize = 14f
+        gravity = Gravity.START or Gravity.TOP
+        setBackgroundColor(Color.parseColor("#CC000000")) // semi-transparent black
+        setPadding(30, 30, 30, 30)
+        text = "Status: Initializing..."
+    }
+
+    private fun setStatus(message: String) {
+        post {
+            statusTextView.text = "Status: $message"
+            Log.d(TAG, "Status updated: $message")
+        }
     }
 
     // MediaPipe helper (initialized when camera starts)
@@ -105,6 +124,18 @@ class ExpoPoseDetectorView(context: Context, appContext: AppContext) : ExpoView(
             FrameLayout.LayoutParams.MATCH_PARENT,
             FrameLayout.LayoutParams.MATCH_PARENT
         ))
+        addView(statusTextView, FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams.WRAP_CONTENT,
+            Gravity.TOP
+        ))
+    }
+
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec)
+        measureChild(previewView, widthMeasureSpec, heightMeasureSpec)
+        measureChild(overlayView, widthMeasureSpec, heightMeasureSpec)
+        measureChild(statusTextView, widthMeasureSpec, heightMeasureSpec)
     }
 
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
@@ -114,6 +145,7 @@ class ExpoPoseDetectorView(context: Context, appContext: AppContext) : ExpoView(
         // Explicitly size child views to fill parent (critical in React Native)
         previewView.layout(0, 0, w, h)
         overlayView.layout(0, 0, w, h)
+        statusTextView.layout(0, 0, w, statusTextView.measuredHeight)
     }
 
     fun setExerciseMode(mode: String) {
@@ -158,6 +190,7 @@ class ExpoPoseDetectorView(context: Context, appContext: AppContext) : ExpoView(
     }
 
     private fun startCamera() {
+        setStatus("Starting camera...")
         // Create a dedicated single-thread executor for image analysis
         if (cameraExecutor == null || cameraExecutor!!.isShutdown) {
             cameraExecutor = Executors.newSingleThreadExecutor()
@@ -165,14 +198,23 @@ class ExpoPoseDetectorView(context: Context, appContext: AppContext) : ExpoView(
 
         // Initialize PoseLandmarkerHelper if needed
         if (poseLandmarkerHelper == null) {
-            poseLandmarkerHelper = PoseLandmarkerHelper(
-                context = context.applicationContext,
-                runningMode = RunningMode.LIVE_STREAM,
-                listener = landmarkerListener,
-                useGpu = true
-            )
+            try {
+                setStatus("Loading pose model...")
+                poseLandmarkerHelper = PoseLandmarkerHelper(
+                    context = context.applicationContext,
+                    runningMode = RunningMode.LIVE_STREAM,
+                    listener = landmarkerListener,
+                    useGpu = true
+                )
+                setStatus("Pose model loaded.")
+            } catch (e: Exception) {
+                setStatus("Error initializing model: ${e.message}")
+                Log.e(TAG, "PoseLandmarkerHelper init failed", e)
+                return
+            }
         }
 
+        setStatus("Getting camera provider...")
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
         cameraProviderFuture.addListener({
             try {
@@ -180,15 +222,18 @@ class ExpoPoseDetectorView(context: Context, appContext: AppContext) : ExpoView(
                 cameraProvider = provider
                 bindCameraUseCases(provider)
             } catch (e: Exception) {
+                setStatus("Error: Failed to get camera provider: ${e.message}")
                 Log.e(TAG, "Failed to get camera provider", e)
             }
         }, ContextCompat.getMainExecutor(context))
     }
 
     private fun bindCameraUseCases(provider: ProcessCameraProvider) {
+        setStatus("Binding use cases...")
         val lifecycleOwner = try {
             getLifecycleOwner()
         } catch (e: Exception) {
+            setStatus("Error: LifecycleOwner not found: ${e.message}")
             Log.e(TAG, "LifecycleOwner not found", e)
             return
         }
@@ -224,8 +269,10 @@ class ExpoPoseDetectorView(context: Context, appContext: AppContext) : ExpoView(
                 preview,
                 imageAnalysis
             )
+            setStatus("Camera bound and active.")
             Log.d(TAG, "Camera bound with Preview + ImageAnalysis")
         } catch (e: Exception) {
+            setStatus("Error binding camera: ${e.message}")
             Log.e(TAG, "Use case binding failed", e)
         }
     }
