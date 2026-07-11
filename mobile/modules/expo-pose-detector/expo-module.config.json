@@ -1,6 +1,0 @@
-{
-  "platforms": ["android"],
-  "android": {
-    "modules": ["com.gitutk.fitpilot.posedetector.ExpoPoseDetectorModule"]
-  }
-}

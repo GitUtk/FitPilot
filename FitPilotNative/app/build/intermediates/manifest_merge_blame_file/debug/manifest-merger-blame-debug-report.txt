@@ -1,0 +1,87 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.gitutk.fitpilot"
+4    android:versionCode="1"
+5    android:versionName="1.0" >
+6
+7    <uses-sdk
+8        android:minSdkVersion="23"
+8-->/home/utkarsh/Documents/poseDetection/FitPilotNative/app/src/main/AndroidManifest.xml
+9        android:targetSdkVersion="30" />
+9-->/home/utkarsh/Documents/poseDetection/FitPilotNative/app/src/main/AndroidManifest.xml
+10
+11    <uses-permission android:name="android.permission.CAMERA" />
+11-->/home/utkarsh/Documents/poseDetection/FitPilotNative/app/src/main/AndroidManifest.xml:5:5-65
+11-->/home/utkarsh/Documents/poseDetection/FitPilotNative/app/src/main/AndroidManifest.xml:5:22-62
+12    <uses-permission android:name="android.permission.INTERNET" />
+12-->/home/utkarsh/Documents/poseDetection/FitPilotNative/app/src/main/AndroidManifest.xml:6:5-67
+12-->/home/utkarsh/Documents/poseDetection/FitPilotNative/app/src/main/AndroidManifest.xml:6:22-64
+13    <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
+13-->/home/utkarsh/Documents/poseDetection/FitPilotNative/app/src/main/AndroidManifest.xml:7:5-79
+13-->/home/utkarsh/Documents/poseDetection/FitPilotNative/app/src/main/AndroidManifest.xml:7:22-76
+14
+15    <uses-feature
+15-->/home/utkarsh/Documents/poseDetection/FitPilotNative/app/src/main/AndroidManifest.xml:9:5-11:35
+16        android:name="android.hardware.camera"
+16-->/home/utkarsh/Documents/poseDetection/FitPilotNative/app/src/main/AndroidManifest.xml:10:9-47
+17        android:required="true" />
+17-->/home/utkarsh/Documents/poseDetection/FitPilotNative/app/src/main/AndroidManifest.xml:11:9-32
+18
+19    <application
+19-->/home/utkarsh/Documents/poseDetection/FitPilotNative/app/src/main/AndroidManifest.xml:13:5-31:19
+20        android:allowBackup="true"
+20-->/home/utkarsh/Documents/poseDetection/FitPilotNative/app/src/main/AndroidManifest.xml:14:9-35
+21        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+21-->[androidx.core:core:1.5.0] /home/utkarsh/.gradle/caches/transforms-3/4218c3e17c25aed5f204a18743a12d97/transformed/core-1.5.0/AndroidManifest.xml:24:18-86
+22        android:debuggable="true"
+23        android:extractNativeLibs="false"
+24        android:hardwareAccelerated="true"
+24-->/home/utkarsh/Documents/poseDetection/FitPilotNative/app/src/main/AndroidManifest.xml:20:9-43
+25        android:icon="@drawable/logo"
+25-->/home/utkarsh/Documents/poseDetection/FitPilotNative/app/src/main/AndroidManifest.xml:15:9-38
+26        android:label="@string/app_name"
+26-->/home/utkarsh/Documents/poseDetection/FitPilotNative/app/src/main/AndroidManifest.xml:16:9-41
+27        android:roundIcon="@drawable/logo"
+27-->/home/utkarsh/Documents/poseDetection/FitPilotNative/app/src/main/AndroidManifest.xml:17:9-43
+28        android:supportsRtl="true"
+28-->/home/utkarsh/Documents/poseDetection/FitPilotNative/app/src/main/AndroidManifest.xml:18:9-35
+29        android:theme="@style/Theme.FitPilot" >
+29-->/home/utkarsh/Documents/poseDetection/FitPilotNative/app/src/main/AndroidManifest.xml:19:9-46
+30        <activity
+30-->/home/utkarsh/Documents/poseDetection/FitPilotNative/app/src/main/AndroidManifest.xml:22:9-30:20
+31            android:name="com.gitutk.fitpilot.MainActivity"
+31-->/home/utkarsh/Documents/poseDetection/FitPilotNative/app/src/main/AndroidManifest.xml:23:13-41
+32            android:exported="true"
+32-->/home/utkarsh/Documents/poseDetection/FitPilotNative/app/src/main/AndroidManifest.xml:24:13-36
+33            android:windowSoftInputMode="adjustResize" >
+33-->/home/utkarsh/Documents/poseDetection/FitPilotNative/app/src/main/AndroidManifest.xml:25:13-55
+34            <intent-filter>
+34-->/home/utkarsh/Documents/poseDetection/FitPilotNative/app/src/main/AndroidManifest.xml:26:13-29:29
+35                <action android:name="android.intent.action.MAIN" />
+35-->/home/utkarsh/Documents/poseDetection/FitPilotNative/app/src/main/AndroidManifest.xml:27:17-69
+35-->/home/utkarsh/Documents/poseDetection/FitPilotNative/app/src/main/AndroidManifest.xml:27:25-66
+36
+37                <category android:name="android.intent.category.LAUNCHER" />
+37-->/home/utkarsh/Documents/poseDetection/FitPilotNative/app/src/main/AndroidManifest.xml:28:17-77
+37-->/home/utkarsh/Documents/poseDetection/FitPilotNative/app/src/main/AndroidManifest.xml:28:27-74
+38            </intent-filter>
+39        </activity>
+40
+41        <service
+41-->[androidx.camera:camera-camera2:1.3.4] /home/utkarsh/.gradle/caches/transforms-3/35903bce780759293e045728ae3dd689/transformed/jetified-camera-camera2-1.3.4/AndroidManifest.xml:24:9-33:19
+42            android:name="androidx.camera.core.impl.MetadataHolderService"
+42-->[androidx.camera:camera-camera2:1.3.4] /home/utkarsh/.gradle/caches/transforms-3/35903bce780759293e045728ae3dd689/transformed/jetified-camera-camera2-1.3.4/AndroidManifest.xml:25:13-75
+43            android:enabled="false"
+43-->[androidx.camera:camera-camera2:1.3.4] /home/utkarsh/.gradle/caches/transforms-3/35903bce780759293e045728ae3dd689/transformed/jetified-camera-camera2-1.3.4/AndroidManifest.xml:26:13-36
+44            android:exported="false" >
+44-->[androidx.camera:camera-camera2:1.3.4] /home/utkarsh/.gradle/caches/transforms-3/35903bce780759293e045728ae3dd689/transformed/jetified-camera-camera2-1.3.4/AndroidManifest.xml:27:13-37
+45            <meta-data
+45-->[androidx.camera:camera-camera2:1.3.4] /home/utkarsh/.gradle/caches/transforms-3/35903bce780759293e045728ae3dd689/transformed/jetified-camera-camera2-1.3.4/AndroidManifest.xml:30:13-32:89
+46                android:name="androidx.camera.core.impl.MetadataHolderService.DEFAULT_CONFIG_PROVIDER"
+46-->[androidx.camera:camera-camera2:1.3.4] /home/utkarsh/.gradle/caches/transforms-3/35903bce780759293e045728ae3dd689/transformed/jetified-camera-camera2-1.3.4/AndroidManifest.xml:31:17-103
+47                android:value="androidx.camera.camera2.Camera2Config$DefaultProvider" />
+47-->[androidx.camera:camera-camera2:1.3.4] /home/utkarsh/.gradle/caches/transforms-3/35903bce780759293e045728ae3dd689/transformed/jetified-camera-camera2-1.3.4/AndroidManifest.xml:32:17-86
+48        </service>
+49    </application>
+50
+51</manifest>

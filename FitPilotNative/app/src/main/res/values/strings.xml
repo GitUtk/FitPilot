@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">FitPilot</string>
+    <string name="request_permission">This app needs camera permission to perform pose tracking.</string>
+</resources>
