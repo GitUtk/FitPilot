@@ -137,49 +137,55 @@ class PoseLandmarkerHelper(
      */
     fun detectLiveStream(imageProxy: ImageProxy, isFrontCamera: Boolean = true) {
         if (runningMode != RunningMode.LIVE_STREAM) {
-            throw IllegalArgumentException(
-                "detectLiveStream requires RunningMode.LIVE_STREAM"
-            )
+            imageProxy.close()
+            return
         }
-
-        val frameTime = SystemClock.uptimeMillis()
-
-        // Create bitmap from the ImageProxy's RGBA_8888 buffer
-        val bitmapBuffer = Bitmap.createBitmap(
-            imageProxy.width,
-            imageProxy.height,
-            Bitmap.Config.ARGB_8888
-        )
-
-        imageProxy.use {
-            bitmapBuffer.copyPixelsFromBuffer(imageProxy.planes[0].buffer)
-        }
-        imageProxy.close()
-
-        // Apply rotation and mirroring (following reference repo pattern)
-        val matrix = Matrix().apply {
-            postRotate(imageProxy.imageInfo.rotationDegrees.toFloat())
-            if (isFrontCamera) {
-                postScale(
-                    -1f, 1f,
-                    imageProxy.width.toFloat(),
-                    imageProxy.height.toFloat()
-                )
-            }
-        }
-
-        val rotatedBitmap = Bitmap.createBitmap(
-            bitmapBuffer, 0, 0, bitmapBuffer.width, bitmapBuffer.height,
-            matrix, true
-        )
-
-        // Convert to MPImage and run async detection
-        val mpImage = BitmapImageBuilder(rotatedBitmap).build()
 
         try {
+            val frameTime = SystemClock.uptimeMillis()
+
+            // IMPORTANT: Capture all metadata BEFORE closing the proxy.
+            // ImageProxy.use{} auto-closes, so any access after that block
+            // will fail silently and crash the analyzer thread.
+            val imgWidth = imageProxy.width
+            val imgHeight = imageProxy.height
+            val rotation = imageProxy.imageInfo.rotationDegrees
+
+            // Create bitmap from the ImageProxy's RGBA_8888 buffer
+            val bitmapBuffer = Bitmap.createBitmap(
+                imgWidth, imgHeight, Bitmap.Config.ARGB_8888
+            )
+
+            // Copy pixels and close the proxy in one step (use{} auto-closes)
+            imageProxy.use {
+                bitmapBuffer.copyPixelsFromBuffer(imageProxy.planes[0].buffer)
+            }
+            // DO NOT call imageProxy.close() here — use{} already did it
+
+            // Apply rotation and mirroring (following reference repo pattern)
+            val matrix = Matrix().apply {
+                postRotate(rotation.toFloat())
+                if (isFrontCamera) {
+                    postScale(
+                        -1f, 1f,
+                        imgWidth.toFloat(),
+                        imgHeight.toFloat()
+                    )
+                }
+            }
+
+            val rotatedBitmap = Bitmap.createBitmap(
+                bitmapBuffer, 0, 0, bitmapBuffer.width, bitmapBuffer.height,
+                matrix, true
+            )
+
+            // Convert to MPImage and run async detection
+            val mpImage = BitmapImageBuilder(rotatedBitmap).build()
             poseLandmarker?.detectAsync(mpImage, frameTime)
         } catch (e: Exception) {
-            Log.e(TAG, "detectAsync failed", e)
+            // Catch everything so a single bad frame doesn't kill the analyzer thread
+            Log.e(TAG, "detectLiveStream frame processing failed", e)
+            try { imageProxy.close() } catch (_: Exception) {}
         }
     }
 

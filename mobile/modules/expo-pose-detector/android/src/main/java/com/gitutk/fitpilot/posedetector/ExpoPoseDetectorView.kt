@@ -14,12 +14,12 @@
 package com.gitutk.fitpilot.posedetector
 
 import android.content.Context
+import android.graphics.Color
 import android.util.Log
 import android.widget.FrameLayout
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
-import androidx.camera.core.UseCaseGroup
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
@@ -35,14 +35,20 @@ class ExpoPoseDetectorView(context: Context, appContext: AppContext) : ExpoView(
 
     private val onPoseUpdate by EventDispatcher()
 
-    // Camera preview fills the entire view
+    // Camera preview fills the entire view.
+    // COMPATIBLE mode uses TextureView (not SurfaceView) which is required
+    // for React Native — SurfaceView has Z-ordering issues in RN's view hierarchy
+    // and renders behind other views, causing a black screen.
     private val previewView = PreviewView(context).apply {
-        implementationMode = PreviewView.ImplementationMode.PERFORMANCE
+        implementationMode = PreviewView.ImplementationMode.COMPATIBLE
         scaleType = PreviewView.ScaleType.FILL_CENTER
     }
 
     // Skeleton overlay drawn on top of camera
-    private val overlayView = PoseOverlayView(context)
+    // Skeleton overlay must be explicitly transparent so it doesn't occlude the preview
+    private val overlayView = PoseOverlayView(context).apply {
+        setBackgroundColor(Color.TRANSPARENT)
+    }
 
     // MediaPipe helper (initialized when camera starts)
     private var poseLandmarkerHelper: PoseLandmarkerHelper? = null
@@ -211,16 +217,12 @@ class ExpoPoseDetectorView(context: Context, appContext: AppContext) : ExpoView(
             }
 
         try {
-            // Bind using UseCaseGroup (following reference repo pattern)
-            val useCaseGroup = UseCaseGroup.Builder()
-                .addUseCase(preview)
-                .addUseCase(imageAnalysis)
-                .build()
-
+            // Direct binding (more compatible than UseCaseGroup in Expo/RN context)
             provider.bindToLifecycle(
                 lifecycleOwner,
                 cameraSelector,
-                useCaseGroup
+                preview,
+                imageAnalysis
             )
             Log.d(TAG, "Camera bound with Preview + ImageAnalysis")
         } catch (e: Exception) {
