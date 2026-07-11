@@ -11,6 +11,11 @@ import androidx.fragment.app.Fragment
 import com.google.android.material.card.MaterialCardView
 import org.json.JSONArray
 import org.json.JSONObject
+import android.text.Spannable
+import android.text.SpannableStringBuilder
+import android.text.style.StyleSpan
+import android.graphics.Typeface
+import android.text.style.LeadingMarginSpan
 
 class MealLoggerFragment : Fragment() {
 
@@ -193,10 +198,10 @@ class MealLoggerFragment : Fragment() {
         }
 
         val tv = TextView(context).apply {
-            this.text = text
+            this.text = if (isUser) text else parseMarkdown(text)
             setTextColor(ContextCompat.getColor(context, if (isUser) R.color.white else R.color.text_primary))
             setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 14f)
-            setLineSpacing(2f, 1.1f)
+            setLineSpacing(3f, 1.15f)
         }
 
         card.addView(tv)
@@ -250,5 +255,75 @@ class MealLoggerFragment : Fragment() {
                 }
             }
         }
+    }
+
+    private fun parseMarkdown(text: String): SpannableStringBuilder {
+        val lines = text.split("\n")
+        val formattedText = StringBuilder()
+        val bulletIntervals = mutableListOf<Pair<Int, Int>>()
+        
+        for (line in lines) {
+            val trimmed = line.trim()
+            if (trimmed.startsWith("* ") || trimmed.startsWith("- ")) {
+                val bulletContent = trimmed.substring(2)
+                val start = formattedText.length
+                formattedText.append("•  ").append(bulletContent).append("\n")
+                val end = formattedText.length - 1
+                bulletIntervals.add(Pair(start, end))
+            } else {
+                formattedText.append(line).append("\n")
+            }
+        }
+        if (formattedText.isNotEmpty()) {
+            formattedText.setLength(formattedText.length - 1)
+        }
+
+        val ssb = SpannableStringBuilder(formattedText.toString())
+
+        for (interval in bulletIntervals) {
+            ssb.setSpan(LeadingMarginSpan.Standard(32, 32), interval.first, interval.second, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
+
+        var boldIndex = ssb.indexOf("**")
+        while (boldIndex != -1) {
+            val nextBoldIndex = ssb.indexOf("**", boldIndex + 2)
+            if (nextBoldIndex != -1) {
+                ssb.delete(nextBoldIndex, nextBoldIndex + 2)
+                ssb.delete(boldIndex, boldIndex + 2)
+                ssb.setSpan(
+                    StyleSpan(Typeface.BOLD),
+                    boldIndex,
+                    nextBoldIndex - 2,
+                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+                boldIndex = ssb.indexOf("**", nextBoldIndex - 2)
+            } else {
+                break
+            }
+        }
+
+        var italicIndex = ssb.indexOf("*")
+        while (italicIndex != -1) {
+            if (italicIndex + 1 < ssb.length && ssb[italicIndex + 1] == '*') {
+                italicIndex = ssb.indexOf("*", italicIndex + 2)
+                continue
+            }
+            val nextItalicIndex = ssb.indexOf("*", italicIndex + 1)
+            if (nextItalicIndex != -1) {
+                ssb.delete(nextItalicIndex, nextItalicIndex + 1)
+                ssb.delete(italicIndex, italicIndex + 1)
+                ssb.setSpan(
+                    StyleSpan(Typeface.ITALIC),
+                    italicIndex,
+                    nextItalicIndex - 1,
+                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+                italicIndex = ssb.indexOf("*", nextItalicIndex - 1)
+            } else {
+                break
+            }
+        }
+
+        return ssb
     }
 }
