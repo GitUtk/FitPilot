@@ -74,7 +74,7 @@ fun WorkoutLogScreen(
                     .background(Color.White)
                     .border(1.dp, Slate200)
                     .padding(horizontal = 20.dp, vertical = 15.dp),
-                verticalAlignment = Alignment.CenterVertizontally
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = "Workout Log",
@@ -123,9 +123,9 @@ fun WorkoutLogScreen(
                                             }
                                             .padding(16.dp),
                                         horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertizontally
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Row(verticalAlignment = Alignment.CenterVertizontally) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
                                             Box(
                                                 modifier = Modifier
                                                     .size(48.dp)
@@ -241,7 +241,7 @@ fun WorkoutLogScreen(
                                                     shape = RoundedCornerShape(6.dp),
                                                     border = BorderStroke(1.dp, Slate200)
                                                 ) {
-                                                    Row(verticalAlignment = Alignment.CenterVertizontally) {
+                                                    Row(verticalAlignment = Alignment.CenterVertically) {
                                                         Text("📷", fontSize = 12.sp)
                                                         Spacer(modifier = Modifier.width(6.dp))
                                                         Text(
@@ -312,7 +312,7 @@ fun WorkoutLogScreen(
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertizontally
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
                                         text = workout.exercise,

@@ -72,9 +72,9 @@ fun DashboardScreen(
                     .border(1.dp, Slate200)
                     .padding(horizontal = 24.dp, vertical = 16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertizontally
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertizontally) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Image(
                         painter = painterResource(id = R.drawable.logo),
                         contentDescription = "Logo",
@@ -141,7 +141,7 @@ fun DashboardScreen(
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Row(
-                                verticalAlignment = Alignment.CenterVertizontally,
+                                verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.padding(bottom = 12.dp)
                             ) {
                                 Box(
@@ -257,7 +257,7 @@ fun DashboardScreen(
                             contentColor = Slate900
                         )
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertizontally) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
                             Text("🔄", fontSize = 14.sp)
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
@@ -289,7 +289,7 @@ fun MetricCard(
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(
-                verticalAlignment = Alignment.CenterVertizontally,
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(bottom = 8.dp)
             ) {
                 Box(

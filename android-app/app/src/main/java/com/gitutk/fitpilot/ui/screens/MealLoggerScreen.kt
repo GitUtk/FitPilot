@@ -69,7 +69,7 @@ fun MealLoggerScreen(viewModel: FitPilotViewModel) {
                     .border(1.dp, Slate200)
                     .padding(horizontal = 16.dp, vertical = 10.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertizontally
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Spacer(modifier = Modifier.width(36.dp))
                 Text(
@@ -101,7 +101,7 @@ fun MealLoggerScreen(viewModel: FitPilotViewModel) {
                         .fillMaxWidth()
                         .clickable { showLogForm = !showLogForm }
                         .padding(vertical = 10.dp, horizontal = 16.dp),
-                    verticalAlignment = Alignment.CenterVertizontally
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = if (showLogForm) "▲" else "▼",
@@ -273,7 +273,7 @@ fun MealLoggerScreen(viewModel: FitPilotViewModel) {
                 if (viewModel.isChatSending) {
                     item {
                         Row(
-                            verticalAlignment = Alignment.CenterVertizontally,
+                            verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.padding(vertical = 4.dp)
                         ) {
                             CircularProgressIndicator(size = 14.dp, color = Slate900)
@@ -296,7 +296,7 @@ fun MealLoggerScreen(viewModel: FitPilotViewModel) {
                     .background(Color.White)
                     .border(1.dp, Slate200)
                     .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertizontally
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 OutlinedTextField(
                     value = inputText,

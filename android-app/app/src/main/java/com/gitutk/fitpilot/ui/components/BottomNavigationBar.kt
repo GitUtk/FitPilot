@@ -43,7 +43,7 @@ fun BottomNavigationBar(
             .border(1.dp, Slate200)
             .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceAround,
-        verticalAlignment = Alignment.CenterVertizontally
+        verticalAlignment = Alignment.CenterVertically
     ) {
         tabs.forEach { tab ->
             val isSelected = currentRoute == tab.route
