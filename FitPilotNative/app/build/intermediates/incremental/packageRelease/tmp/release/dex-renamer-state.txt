@@ -1,7 +1,0 @@
-#Sun Jul 12 01:41:54 IST 2026
-base.1=/home/utkarsh/Documents/poseDetection/FitPilot/FitPilotNative/app/build/intermediates/dex/release/mergeDexRelease/classes2.dex
-path.1=classes2.dex
-base.0=/home/utkarsh/Documents/poseDetection/FitPilot/FitPilotNative/app/build/intermediates/dex/release/mergeDexRelease/classes.dex
-renamed.1=classes2.dex
-renamed.0=classes.dex
-path.0=classes.dex
