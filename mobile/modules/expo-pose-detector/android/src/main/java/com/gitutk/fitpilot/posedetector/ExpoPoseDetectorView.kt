@@ -132,20 +132,54 @@ class ExpoPoseDetectorView(context: Context, appContext: AppContext) : ExpoView(
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec)
-        measureChild(previewView, widthMeasureSpec, heightMeasureSpec)
-        measureChild(overlayView, widthMeasureSpec, heightMeasureSpec)
-        measureChild(statusTextView, widthMeasureSpec, heightMeasureSpec)
+        val width = MeasureSpec.getSize(widthMeasureSpec)
+        val height = MeasureSpec.getSize(heightMeasureSpec)
+        setMeasuredDimension(width, height)
+
+        val exactWidthSpec = MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY)
+        val exactHeightSpec = MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY)
+
+        previewView.measure(exactWidthSpec, exactHeightSpec)
+        overlayView.measure(exactWidthSpec, exactHeightSpec)
+        statusTextView.measure(
+            exactWidthSpec,
+            MeasureSpec.makeMeasureSpec(height, MeasureSpec.AT_MOST)
+        )
     }
 
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
         super.onLayout(changed, left, top, right, bottom)
         val w = right - left
         val h = bottom - top
-        // Explicitly size child views to fill parent (critical in React Native)
+
+        // Force child measurement to match parent dimensions exactly.
+        // Without this, React Native's layout engine can leave children measured at 0x0.
+        val exactWidthSpec = MeasureSpec.makeMeasureSpec(w, MeasureSpec.EXACTLY)
+        val exactHeightSpec = MeasureSpec.makeMeasureSpec(h, MeasureSpec.EXACTLY)
+        
+        previewView.measure(exactWidthSpec, exactHeightSpec)
         previewView.layout(0, 0, w, h)
+
+        overlayView.measure(exactWidthSpec, exactHeightSpec)
         overlayView.layout(0, 0, w, h)
+
+        statusTextView.measure(exactWidthSpec, MeasureSpec.makeMeasureSpec(h, MeasureSpec.AT_MOST))
         statusTextView.layout(0, 0, w, statusTextView.measuredHeight)
+    }
+
+    override fun requestLayout() {
+        super.requestLayout()
+        // Force layout pass because React Native's custom layout hierarchy frequently
+        // bypasses/ignores standard layout requests from nested native views.
+        post(measureAndLayoutRunnable)
+    }
+
+    private val measureAndLayoutRunnable = Runnable {
+        measure(
+            MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
+            MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY)
+        )
+        layout(left, top, right, bottom)
     }
 
     fun setExerciseMode(mode: String) {
