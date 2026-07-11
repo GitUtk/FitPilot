@@ -2,18 +2,18 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
         android:id="@+id/nav_dashboard"
-        android:icon="@android:drawable/ic_menu_myplaces"
+        android:icon="@drawable/ic_fa_dashboard"
         android:title="Dashboard" />
     <item
         android:id="@+id/nav_pose"
-        android:icon="@android:drawable/ic_menu_camera"
+        android:icon="@drawable/ic_fa_pose"
         android:title="Pose AI" />
     <item
         android:id="@+id/nav_workouts"
-        android:icon="@android:drawable/ic_menu_agenda"
+        android:icon="@drawable/ic_fa_workouts"
         android:title="Workouts" />
     <item
         android:id="@+id/nav_food"
-        android:icon="@android:drawable/ic_menu_manage"
+        android:icon="@drawable/ic_fa_food"
         android:title="Food AI" />
 </menu>

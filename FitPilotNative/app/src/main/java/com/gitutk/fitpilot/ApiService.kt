@@ -13,7 +13,7 @@ class ApiService(context: Context) {
     private val prefs = context.getSharedPreferences("fitpilot_prefs", Context.MODE_PRIVATE)
 
     companion object {
-        private const val BASE_URL = "https://fitpilot-dips.onrender.com/api/v1"
+        private const val BASE_URL = "https://fit-pilot-backend.vercel.app/api/v1"
         private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
     }
 

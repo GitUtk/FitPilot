@@ -32,12 +32,6 @@ FitPilot is a modern, professional-grade metabolic tracking and biomechanical tr
 
 ---
 
-## System Architecture Flowchart
-
-![System Architecture Flowchart](assets/image.png)
-
----
-
 ## Key Features
 
 ### 1. Daily Activity Dashboard
