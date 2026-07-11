@@ -167,14 +167,20 @@ class ExpoPoseDetectorView(context: Context, appContext: AppContext) : ExpoView(
         statusTextView.layout(0, 0, w, statusTextView.measuredHeight)
     }
 
+    private var isLayoutScheduled = false
+
     override fun requestLayout() {
         super.requestLayout()
         // Force layout pass because React Native's custom layout hierarchy frequently
         // bypasses/ignores standard layout requests from nested native views.
-        post(measureAndLayoutRunnable)
+        if (!isLayoutScheduled) {
+            isLayoutScheduled = true
+            post(measureAndLayoutRunnable)
+        }
     }
 
     private val measureAndLayoutRunnable = Runnable {
+        isLayoutScheduled = false
         measure(
             MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
             MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY)
