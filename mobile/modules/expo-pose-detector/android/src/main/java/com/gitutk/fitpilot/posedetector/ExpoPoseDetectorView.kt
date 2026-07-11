@@ -1,78 +1,111 @@
+/*
+ * ExpoPoseDetectorView - The Expo native view that hosts the CameraX preview,
+ * MediaPipe pose landmarker, overlay rendering, and exercise analysis.
+ *
+ * Architecture follows the PoseDetector reference repo:
+ * - CameraX Preview → PreviewView (FILL_CENTER)
+ * - CameraX ImageAnalysis → PoseLandmarkerHelper (RGBA_8888 → Bitmap → MPImage)
+ * - Results → PoseOverlayView (normalized coords → screen coords)
+ * - Results → ExerciseAnalyzer → onPoseUpdate event → React Native
+ *
+ * Key fix over previous implementation: uses MediaPipe Tasks Vision instead
+ * of ML Kit, with proper RGBA_8888 image format and Bitmap rotation/mirroring.
+ */
 package com.gitutk.fitpilot.posedetector
 
 import android.content.Context
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.Paint
-import android.view.View
+import android.util.Log
 import android.widget.FrameLayout
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
-import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
+import androidx.camera.core.UseCaseGroup
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
-import com.google.mlkit.vision.common.InputImage
-import com.google.mlkit.vision.pose.Pose
-import com.google.mlkit.vision.pose.PoseDetection
-import com.google.mlkit.vision.pose.PoseDetector
-import com.google.mlkit.vision.pose.PoseLandmark
-import com.google.mlkit.vision.pose.defaults.PoseDetectorOptions
+import com.google.mediapipe.tasks.vision.core.RunningMode
 import expo.modules.kotlin.AppContext
 import expo.modules.kotlin.viewevent.EventDispatcher
 import expo.modules.kotlin.views.ExpoView
-import kotlin.math.abs
-import kotlin.math.atan2
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 class ExpoPoseDetectorView(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
 
     private val onPoseUpdate by EventDispatcher()
 
-    private val previewView = PreviewView(context)
+    // Camera preview fills the entire view
+    private val previewView = PreviewView(context).apply {
+        implementationMode = PreviewView.ImplementationMode.PERFORMANCE
+        scaleType = PreviewView.ScaleType.FILL_CENTER
+    }
+
+    // Skeleton overlay drawn on top of camera
     private val overlayView = PoseOverlayView(context)
 
-    private val options = PoseDetectorOptions.Builder()
-        .setDetectorMode(PoseDetectorOptions.STREAM_MODE)
-        .build()
-    private val poseDetector = PoseDetection.getClient(options)
+    // MediaPipe helper (initialized when camera starts)
+    private var poseLandmarkerHelper: PoseLandmarkerHelper? = null
 
+    // Exercise analysis
+    private val exerciseAnalyzer = ExerciseAnalyzer()
+
+    // Camera state
     private var cameraProvider: ProcessCameraProvider? = null
+    private var cameraExecutor: ExecutorService? = null
 
-    // State variables
+    // Props from React Native
     private var exerciseMode = "squat"
     private var isActive = false
 
-    // Squat state
-    private var squatCounter = 0
-    private var squatStage = "up"
-
-    // Curl state
-    private var leftCounter = 0
-    private var rightCounter = 0
-    private var leftStage = "down"
-    private var rightStage = "down"
-
-    // Track previous values to prevent spamming updates
+    // Throttle event dispatching to avoid overwhelming JS bridge
+    private var lastEventTime = 0L
     private var lastReps = -1
-    private var lastFeedback = listOf<String>()
+
+    private val landmarkerListener = object : PoseLandmarkerHelper.LandmarkerListener {
+        override fun onResults(resultBundle: PoseLandmarkerHelper.ResultBundle) {
+            post {
+                // Update overlay
+                if (resultBundle.results.isNotEmpty()) {
+                    overlayView.setResults(
+                        resultBundle.results.first(),
+                        resultBundle.inputImageHeight,
+                        resultBundle.inputImageWidth,
+                        RunningMode.LIVE_STREAM
+                    )
+                } else {
+                    overlayView.clear()
+                }
+
+                // Run exercise analysis and dispatch to RN
+                if (isActive && resultBundle.results.isNotEmpty()) {
+                    val result = exerciseAnalyzer.analyze(resultBundle.results.first(), exerciseMode)
+                    result?.let { dispatchExerciseResult(it) }
+                }
+            }
+        }
+
+        override fun onError(error: String) {
+            Log.e(TAG, "PoseLandmarker error: $error")
+        }
+    }
 
     init {
-        // Setup scaling and configuration for PreviewView to fill the screen
-        previewView.scaleType = PreviewView.ScaleType.FILL_CENTER
-        
-        addView(previewView)
-        addView(overlayView)
+        addView(previewView, FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams.MATCH_PARENT
+        ))
+        addView(overlayView, FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams.MATCH_PARENT
+        ))
     }
 
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
         super.onLayout(changed, left, top, right, bottom)
         val w = right - left
         val h = bottom - top
-        
-        // Explicitly size child views to fill the parent.
-        // This is critical in React Native to prevent children from defaulting to 0x0 size.
+        // Explicitly size child views to fill parent (critical in React Native)
         previewView.layout(0, 0, w, h)
         overlayView.layout(0, 0, w, h)
     }
@@ -80,7 +113,9 @@ class ExpoPoseDetectorView(context: Context, appContext: AppContext) : ExpoView(
     fun setExerciseMode(mode: String) {
         if (this.exerciseMode != mode) {
             this.exerciseMode = mode
-            resetCounters()
+            exerciseAnalyzer.reset()
+            lastReps = -1
+            overlayView.clear()
         }
     }
 
@@ -107,30 +142,31 @@ class ExpoPoseDetectorView(context: Context, appContext: AppContext) : ExpoView(
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
         stopCamera()
-        poseDetector.close()
-    }
-
-    private fun resetCounters() {
-        squatCounter = 0
-        squatStage = "up"
-        leftCounter = 0
-        rightCounter = 0
-        leftStage = "down"
-        rightStage = "down"
-        lastReps = -1
-        lastFeedback = emptyList()
-        post {
-            overlayView.clear()
-        }
     }
 
     private fun getLifecycleOwner(): LifecycleOwner {
-        val activity = appContext.currentActivity ?: throw IllegalStateException("Current activity is null")
-        return activity as? LifecycleOwner ?: throw IllegalStateException("Activity is not a LifecycleOwner")
+        val activity = appContext.currentActivity
+            ?: throw IllegalStateException("Current activity is null")
+        return activity as? LifecycleOwner
+            ?: throw IllegalStateException("Activity is not a LifecycleOwner")
     }
 
     private fun startCamera() {
-        val context = context
+        // Create a dedicated single-thread executor for image analysis
+        if (cameraExecutor == null || cameraExecutor!!.isShutdown) {
+            cameraExecutor = Executors.newSingleThreadExecutor()
+        }
+
+        // Initialize PoseLandmarkerHelper if needed
+        if (poseLandmarkerHelper == null) {
+            poseLandmarkerHelper = PoseLandmarkerHelper(
+                context = context.applicationContext,
+                runningMode = RunningMode.LIVE_STREAM,
+                listener = landmarkerListener,
+                useGpu = true
+            )
+        }
+
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
         cameraProviderFuture.addListener({
             try {
@@ -138,7 +174,7 @@ class ExpoPoseDetectorView(context: Context, appContext: AppContext) : ExpoView(
                 cameraProvider = provider
                 bindCameraUseCases(provider)
             } catch (e: Exception) {
-                android.util.Log.e("ExpoPoseDetector", "Failed to get camera provider", e)
+                Log.e(TAG, "Failed to get camera provider", e)
             }
         }, ContextCompat.getMainExecutor(context))
     }
@@ -147,47 +183,48 @@ class ExpoPoseDetectorView(context: Context, appContext: AppContext) : ExpoView(
         val lifecycleOwner = try {
             getLifecycleOwner()
         } catch (e: Exception) {
-            android.util.Log.e("ExpoPoseDetector", "LifecycleOwner not found", e)
+            Log.e(TAG, "LifecycleOwner not found", e)
             return
         }
 
         provider.unbindAll()
 
+        // Front camera for self-facing exercise tracking
         val cameraSelector = CameraSelector.Builder()
             .requireLensFacing(CameraSelector.LENS_FACING_FRONT)
             .build()
 
-        val preview = Preview.Builder().build()
-        preview.setSurfaceProvider(previewView.surfaceProvider)
+        // Camera preview use case
+        val preview = Preview.Builder().build().also {
+            it.surfaceProvider = previewView.surfaceProvider
+        }
 
+        // Image analysis use case - critical: use RGBA_8888 format for MediaPipe
         val imageAnalysis = ImageAnalysis.Builder()
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+            .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
             .build()
-
-        imageAnalysis.setAnalyzer(
-            ContextCompat.getMainExecutor(context),
-            PoseAnalyzer(poseDetector) { pose, imageProxy ->
-                val rotation = imageProxy.imageInfo.rotationDegrees
-                val width = imageProxy.width
-                val height = imageProxy.height
-
-                post {
-                    overlayView.setFrameInfo(width, height, rotation)
-                    overlayView.setPose(pose)
-                    processPose(pose)
+            .also {
+                it.setAnalyzer(cameraExecutor!!) { imageProxy ->
+                    poseLandmarkerHelper?.detectLiveStream(imageProxy, isFrontCamera = true)
                 }
             }
-        )
 
         try {
+            // Bind using UseCaseGroup (following reference repo pattern)
+            val useCaseGroup = UseCaseGroup.Builder()
+                .addUseCase(preview)
+                .addUseCase(imageAnalysis)
+                .build()
+
             provider.bindToLifecycle(
                 lifecycleOwner,
                 cameraSelector,
-                preview,
-                imageAnalysis
+                useCaseGroup
             )
+            Log.d(TAG, "Camera bound with Preview + ImageAnalysis")
         } catch (e: Exception) {
-            android.util.Log.e("ExpoPoseDetector", "Use case binding failed", e)
+            Log.e(TAG, "Use case binding failed", e)
         }
     }
 
@@ -195,275 +232,35 @@ class ExpoPoseDetectorView(context: Context, appContext: AppContext) : ExpoView(
         post {
             cameraProvider?.unbindAll()
             overlayView.clear()
+            poseLandmarkerHelper?.clearPoseLandmarker()
+            poseLandmarkerHelper = null
+            cameraExecutor?.shutdown()
+            cameraExecutor = null
+            exerciseAnalyzer.reset()
+            lastReps = -1
         }
     }
 
-    private fun calculateAngle(
-        aX: Float, aY: Float,
-        bX: Float, bY: Float,
-        cX: Float, cY: Float
-    ): Double {
-        val radians = atan2(cY - bY, cX - bX) - atan2(aY - bY, aX - bX)
-        var angle = abs(radians * 180.0 / Math.PI)
-        if (angle > 180.0) {
-            angle = 360.0 - angle
-        }
-        return angle
-    }
+    private fun dispatchExerciseResult(result: ExerciseAnalyzer.ExerciseResult) {
+        // Throttle: send at most every 100ms OR when reps change
+        val now = System.currentTimeMillis()
+        if (now - lastEventTime < 100 && result.reps == lastReps) return
 
-    private fun processPose(pose: Pose) {
-        if (!isActive) return
+        lastEventTime = now
+        lastReps = result.reps
 
-        val landmarks = pose.allPoseLandmarks
-        if (landmarks.isEmpty()) return
-
-        if (exerciseMode == "squat") {
-            val hip = pose.getPoseLandmark(PoseLandmark.LEFT_HIP)
-            val knee = pose.getPoseLandmark(PoseLandmark.LEFT_KNEE)
-            val ankle = pose.getPoseLandmark(PoseLandmark.LEFT_ANKLE)
-
-            if (hip != null && knee != null && ankle != null) {
-                val angle = calculateAngle(
-                    hip.position.x, hip.position.y,
-                    knee.position.x, knee.position.y,
-                    ankle.position.x, ankle.position.y
-                )
-
-                if (angle > 160.0) {
-                    squatStage = "up"
-                } else if (angle < 90.0 && squatStage == "up") {
-                    squatStage = "down"
-                    squatCounter++
-                }
-
-                val feedback = listOf("Stage: $squatStage")
-                val reps = squatCounter
-
-                if (reps != lastReps || feedback != lastFeedback) {
-                    lastReps = reps
-                    lastFeedback = feedback
-                    sendPoseUpdate(
-                        reps = reps,
-                        kneeAngle = angle,
-                        elbowAngleLeft = 0.0,
-                        elbowAngleRight = 0.0,
-                        feedback = feedback,
-                        isFormCorrect = true
-                    )
-                }
-            }
-        } else {
-            // curl logic
-            val leftShoulder = pose.getPoseLandmark(PoseLandmark.LEFT_SHOULDER)
-            val leftElbow = pose.getPoseLandmark(PoseLandmark.LEFT_ELBOW)
-            val leftWrist = pose.getPoseLandmark(PoseLandmark.LEFT_WRIST)
-
-            val rightShoulder = pose.getPoseLandmark(PoseLandmark.RIGHT_SHOULDER)
-            val rightElbow = pose.getPoseLandmark(PoseLandmark.RIGHT_ELBOW)
-            val rightWrist = pose.getPoseLandmark(PoseLandmark.RIGHT_WRIST)
-
-            var leftAngle = 0.0
-            var rightAngle = 0.0
-
-            if (leftShoulder != null && leftElbow != null && leftWrist != null) {
-                leftAngle = calculateAngle(
-                    leftShoulder.position.x, leftShoulder.position.y,
-                    leftElbow.position.x, leftElbow.position.y,
-                    leftWrist.position.x, leftWrist.position.y
-                )
-
-                if (leftAngle > 160.0) {
-                    leftStage = "down"
-                } else if (leftAngle < 30.0 && leftStage == "down") {
-                    leftStage = "up"
-                    leftCounter++
-                }
-            }
-
-            if (rightShoulder != null && rightElbow != null && rightWrist != null) {
-                rightAngle = calculateAngle(
-                    rightShoulder.position.x, rightShoulder.position.y,
-                    rightElbow.position.x, rightElbow.position.y,
-                    rightWrist.position.x, rightWrist.position.y
-                )
-
-                if (rightAngle > 160.0) {
-                    rightStage = "down"
-                } else if (rightAngle < 30.0 && rightStage == "down") {
-                    rightStage = "up"
-                    rightCounter++
-                }
-            }
-
-            val reps = leftCounter + rightCounter
-            val feedback = listOf("Left: $leftStage", "Right: $rightStage")
-
-            if (reps != lastReps || feedback != lastFeedback) {
-                lastReps = reps
-                lastFeedback = feedback
-                sendPoseUpdate(
-                    reps = reps,
-                    kneeAngle = 0.0,
-                    elbowAngleLeft = leftAngle,
-                    elbowAngleRight = rightAngle,
-                    feedback = feedback,
-                    isFormCorrect = true
-                )
-            }
-        }
-    }
-
-    private fun sendPoseUpdate(
-        reps: Int,
-        kneeAngle: Double,
-        elbowAngleLeft: Double,
-        elbowAngleRight: Double,
-        feedback: List<String>,
-        isFormCorrect: Boolean
-    ) {
         val eventData = mapOf(
-            "reps" to reps,
-            "kneeAngle" to if (exerciseMode == "squat") "${kneeAngle.toInt()}°" else "--",
-            "backAngle" to "--",
-            "elbowAngle" to if (exerciseMode == "curl") "L: ${elbowAngleLeft.toInt()}° | R: ${elbowAngleRight.toInt()}°" else "--",
-            "feedback" to feedback,
-            "isFormCorrect" to isFormCorrect
+            "reps" to result.reps,
+            "kneeAngle" to if (result.kneeAngle >= 0) "${result.kneeAngle}" else "--",
+            "backAngle" to if (result.backAngle >= 0) "${result.backAngle}" else "--",
+            "elbowAngle" to if (result.elbowAngle >= 0) "${result.elbowAngle}" else "--",
+            "feedback" to result.feedback,
+            "isFormCorrect" to result.isFormCorrect
         )
         onPoseUpdate(eventData)
     }
 
-    private class PoseAnalyzer(
-        private val poseDetector: PoseDetector,
-        private val onPoseDetected: (Pose, ImageProxy) -> Unit
-    ) : ImageAnalysis.Analyzer {
-
-        @androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
-        override fun analyze(imageProxy: ImageProxy) {
-            val mediaImage = imageProxy.image
-            if (mediaImage != null) {
-                val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
-                poseDetector.process(image)
-                    .addOnSuccessListener { pose ->
-                        onPoseDetected(pose, imageProxy)
-                    }
-                    .addOnFailureListener {
-                        imageProxy.close()
-                    }
-                    .addOnCompleteListener {
-                        imageProxy.close()
-                    }
-            } else {
-                imageProxy.close()
-            }
-        }
-    }
-
-    private class PoseOverlayView(context: Context) : View(context) {
-        private var imageWidth = 0
-        private var imageHeight = 0
-        private var rotationDegrees = 0
-        private var pose: Pose? = null
-
-        private val linePaint = Paint().apply {
-            color = Color.rgb(16, 185, 129) // neon green
-            strokeWidth = 8f
-            style = Paint.Style.STROKE
-            isAntiAlias = true
-        }
-
-        private val pointPaint = Paint().apply {
-            color = Color.rgb(239, 68, 68) // red dot
-            strokeWidth = 14f
-            style = Paint.Style.FILL
-            isAntiAlias = true
-        }
-
-        fun setFrameInfo(width: Int, height: Int, rotation: Int) {
-            this.imageWidth = width
-            this.imageHeight = height
-            this.rotationDegrees = rotation
-        }
-
-        fun setPose(pose: Pose) {
-            this.pose = pose
-            postInvalidate()
-        }
-
-        fun clear() {
-            this.pose = null
-            postInvalidate()
-        }
-
-        override fun onDraw(canvas: Canvas) {
-            super.onDraw(canvas)
-            val currentPose = pose ?: return
-            val landmarks = currentPose.allPoseLandmarks
-            if (landmarks.isEmpty()) return
-
-            val isLandscape = rotationDegrees == 90 || rotationDegrees == 270
-            val targetWidth = if (isLandscape) imageHeight else imageWidth
-            val targetHeight = if (isLandscape) imageWidth else imageHeight
-
-            if (targetWidth == 0 || targetHeight == 0) return
-
-            val scaleX = width.toFloat() / targetWidth
-            val scaleY = height.toFloat() / targetHeight
-
-            fun getScreenX(landmark: PoseLandmark): Float {
-                // Mirrored horizontally for front camera (flip the X)
-                val x = targetWidth - landmark.position.x
-                return x * scaleX
-            }
-
-            fun getScreenY(landmark: PoseLandmark): Float {
-                return landmark.position.y * scaleY
-            }
-
-            fun drawLine(startType: Int, endType: Int) {
-                val startLandmark = currentPose.getPoseLandmark(startType)
-                val endLandmark = currentPose.getPoseLandmark(endType)
-                if (startLandmark != null && endLandmark != null) {
-                    canvas.drawLine(
-                        getScreenX(startLandmark),
-                        getScreenY(startLandmark),
-                        getScreenX(endLandmark),
-                        getScreenY(endLandmark),
-                        linePaint
-                    )
-                }
-            }
-
-            // Torso/Shoulders/Hips
-            drawLine(PoseLandmark.LEFT_SHOULDER, PoseLandmark.RIGHT_SHOULDER)
-            drawLine(PoseLandmark.LEFT_HIP, PoseLandmark.RIGHT_HIP)
-            drawLine(PoseLandmark.LEFT_SHOULDER, PoseLandmark.LEFT_HIP)
-            drawLine(PoseLandmark.RIGHT_SHOULDER, PoseLandmark.RIGHT_HIP)
-
-            // Left Arm
-            drawLine(PoseLandmark.LEFT_SHOULDER, PoseLandmark.LEFT_ELBOW)
-            drawLine(PoseLandmark.LEFT_ELBOW, PoseLandmark.LEFT_WRIST)
-
-            // Right Arm
-            drawLine(PoseLandmark.RIGHT_SHOULDER, PoseLandmark.RIGHT_ELBOW)
-            drawLine(PoseLandmark.RIGHT_ELBOW, PoseLandmark.RIGHT_WRIST)
-
-            // Left Leg
-            drawLine(PoseLandmark.LEFT_HIP, PoseLandmark.LEFT_KNEE)
-            drawLine(PoseLandmark.LEFT_KNEE, PoseLandmark.LEFT_ANKLE)
-
-            // Right Leg
-            drawLine(PoseLandmark.RIGHT_HIP, PoseLandmark.RIGHT_KNEE)
-            drawLine(PoseLandmark.RIGHT_KNEE, PoseLandmark.RIGHT_ANKLE)
-
-            // Draw joints
-            for (landmark in landmarks) {
-                canvas.drawCircle(
-                    getScreenX(landmark),
-                    getScreenY(landmark),
-                    10f,
-                    pointPaint
-                )
-            }
-        }
+    companion object {
+        private const val TAG = "ExpoPoseDetectorView"
     }
 }

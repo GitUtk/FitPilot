@@ -47,6 +47,9 @@ dist/
 mobile/android/
 mobile/ios/
 
+# Reference repos (cloned for development only)
+PoseDetector/
+
 # Python Virtual Environments
 .venv/
 venv/
