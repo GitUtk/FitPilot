@@ -147,3 +147,9 @@ db.lock
 expo-env.d.ts
 .metro-health-check*
 
+# Android/Gradle Build Outputs
+**/build/
+**/local.properties
+**/*.apk
+.gradle/
+

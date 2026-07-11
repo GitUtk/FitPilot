@@ -36,9 +36,11 @@ jobs:
           echo "Extracted App Version: $VERSION (Build: $VERSION_CODE)"
 
       - name: Decode Release Keystore Signature
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        if: ${{ env.KEYSTORE_BASE64 != '' }}
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > FitPilotNative/app/release.keystore
+          echo "${KEYSTORE_BASE64}" | base64 --decode > FitPilotNative/app/release.keystore
           echo "Keystore successfully decoded and placed"
 
       - name: Build Android Release APK
