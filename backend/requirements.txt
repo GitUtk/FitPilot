@@ -9,6 +9,3 @@ bcrypt
 email-validator
 motor
 httpx
-mediapipe
-numpy
-opencv-python-headless

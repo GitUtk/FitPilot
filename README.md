@@ -1,24 +1,24 @@
 # FitPilot
 
-FitPilot is a modern, professional-grade metabolic tracking and biomechanical training assistant. It combines a FastAPI MongoDB Atlas backend with a React Native Expo TypeScript mobile application.
+FitPilot is a modern, professional-grade metabolic tracking and biomechanical training assistant. It combines a FastAPI MongoDB Atlas backend with a native Android Kotlin mobile application.
 
 ---
 
 ## Technology Stack
 
-![TypeScript](https://img.shields.io/badge/typescript-%23007acc.svg?style=for-the-badge&logo=typescript&logoColor=white)
-![React Native](https://img.shields.io/badge/react_native-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361dafb)
-![Expo](https://img.shields.io/badge/expo-%231C1E24.svg?style=for-the-badge&logo=expo&logoColor=white)
+![Kotlin](https://img.shields.io/badge/kotlin-%237F52FF.svg?style=for-the-badge&logo=kotlin&logoColor=white)
+![Android](https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)
+![TensorFlow Lite](https://img.shields.io/badge/TensorFlow%20Lite-FF6F00?style=for-the-badge&logo=tensorflow&logoColor=white)
 ![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
 ![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)
 ![MongoDB](https://img.shields.io/badge/MongoDB-%234ea94b.svg?style=for-the-badge&logo=mongodb&logoColor=white)
 
 ### Mobile Frontend
-- **Framework**: React Native with Expo (v57.0.0)
-- **Language**: TypeScript
-- **Navigation**: React Navigation (Native Stack + Bottom Tabs)
-- **Sensory Tracking**: Expo Sensors (Pedometer integration for motion tracking)
-- **Biomechanical AI**: Client-side WASM/WebGL MediaPipe Pose tracking
+- **Framework**: Native Android Application
+- **Language**: Kotlin
+- **SDK Compatibility**: Min SDK 23, Target SDK 30
+- **Camera integration**: Jetpack CameraX (high performance, lifecycle-aware camera stream)
+- **Biomechanical AI**: On-device TensorFlow Lite (`MoveNet` & `PoseNet`) running live coordinates extraction, joint angle mathematics, and rep counter completely client-side.
 
 ### Backend Service
 - **Framework**: FastAPI
@@ -58,12 +58,13 @@ FitPilot is a modern, professional-grade metabolic tracking and biomechanical tr
   - **Bicep Curl**: 3.5 MET
 - **Workout History**: Displays a timeline of exercises logged during the day.
 
-### 4. Real-Time Posture Checker (Web Overlay)
-- **Latency-Free Detection**: Processes camera frames locally on the client using WebGL-accelerated MediaPipe (avoiding round-trip network delays).
+### 4. Real-Time Posture Checker (CameraX & TFLite)
+- **On-Device Pose Estimation**: Processes camera frames locally on the client using TensorFlow Lite MoveNet/PoseNet models via Jetpack CameraX.
 - **Form Analysis & Audio-Visual Feedback**:
-  - *Squats*: Checks depth and checks back rounding.
-  - *Bicep Curls*: Checks elbow placement and leans.
-  - *Skeletal Color Cues*: Skeletal overlays render in green when form is correct and turn red during errors.
+  - *Squats*: Checks depth and tracks alignment.
+  - *Bicep Curls*: Checks elbow placement and counts reps.
+  - *Lunges & Presses*: Dynamic pose calculation for multiple exercises.
+  - *Skeletal Color Cues*: Skeleton overlays render in green when form is correct and turn red during errors.
 
 ---
 
@@ -113,11 +114,11 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-### 3. Launch the Mobile Application
+### 3. Build & Run the Mobile Application
+You can compile and run the native Kotlin application using Android Studio or the Gradle wrapper command line:
 ```bash
-cd mobile
-npm install
-npx expo start
+cd FitPilotNative
+./gradlew assembleDebug
 ```
-- Press **w** to run on web browser.
-- Scan QR code to launch in Expo Go on Android/iOS.
+The generated debug APK will be located at:
+`FitPilotNative/app/build/outputs/apk/debug/app-debug.apk`
