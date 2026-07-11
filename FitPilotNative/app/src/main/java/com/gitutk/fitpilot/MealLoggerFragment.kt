@@ -181,11 +181,11 @@ class MealLoggerFragment : Fragment() {
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply {
-                leftMargin = if (isUser) 56 else 0
-                rightMargin = if (isUser) 0 else 56
+                leftMargin = if (isUser) 64 else 12
+                rightMargin = if (isUser) 12 else 64
             }
             cardElevation = 0f
-            radius = 16f
+            radius = 18f
             setContentPadding(16, 12, 16, 12)
 
             if (isUser) {
