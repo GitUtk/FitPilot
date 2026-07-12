@@ -36,11 +36,11 @@ FitPilot is a modern, professional-grade metabolic tracking and biomechanical tr
 
 Here is a visual walkthrough of the application interface and user flow:
 
-| 1. Secure Authentication | 2. Live AI Pose Tracker | 3. Daily Performance Dashboard |
+| 1. Secure Authentication | 2. Daily Activity Dashboard | 3. Indian Food Suggestions |
 |:---:|:---:|:---:|
 | <img src="assets/1.png" width="250" /> | <img src="assets/2.png" width="250" /> | <img src="assets/3.png" width="250" /> |
 
-| 4. Food Logger (Conversational Chat) | 5. Metabolic Progress Stats |
+| 4. Live AI Pose Tracker | 5. Conversational Food AI Chatbot |
 |:---:|:---:|
 | <img src="assets/4.png" width="250" /> | <img src="assets/5.png" width="250" /> |
 
