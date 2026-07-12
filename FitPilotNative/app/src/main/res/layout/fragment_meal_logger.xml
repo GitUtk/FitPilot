@@ -1,279 +1,110 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
     android:background="@color/background">
 
-    <!-- Tab / Toggle Bar -->
-    <LinearLayout
+    <!-- Top Header Bar -->
+    <RelativeLayout
+        android:id="@+id/rlHeaderBar"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:orientation="horizontal"
+        android:layout_height="wrap_content"
         android:background="@color/white"
+        android:paddingHorizontal="20dp"
+        android:paddingVertical="14dp"
+        android:elevation="2dp">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_alignParentStart="true"
+            android:layout_toStartOf="@id/btnClearChat"
+            android:layout_marginEnd="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="AI Coach"
+                android:textColor="@color/text_primary"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Personalized fitness &amp; nutrition advisor"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp"
+                android:layout_marginTop="2dp" />
+        </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/btnClearChat"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_menu_delete"
+            app:tint="@color/text_secondary" />
+    </RelativeLayout>
+
+    <!-- Chat Messages Scroll Area -->
+    <ScrollView
+        android:id="@+id/svChat"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@id/llInputArea"
+        android:layout_below="@id/rlHeaderBar"
+        android:fillViewport="true"
         android:paddingHorizontal="16dp"
-        android:paddingVertical="4dp"
-        android:weightSum="2">
+        android:paddingVertical="8dp">
 
-        <Button
-            android:id="@+id/btnTabChat"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:text="AI Assistant"
-            android:textColor="@color/primary"
-            android:textStyle="bold" />
+        <LinearLayout
+            android:id="@+id/llChatMessages"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingBottom="16dp" />
+    </ScrollView>
 
-        <Button
-            android:id="@+id/btnTabQuickLog"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
+    <!-- Bottom Input Area -->
+    <LinearLayout
+        android:id="@+id/llInputArea"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_alignParentBottom="true"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="10dp"
+        android:background="@color/white"
+        android:elevation="4dp"
+        android:gravity="center_vertical">
+
+        <EditText
+            android:id="@+id/etChatInput"
             android:layout_width="0dp"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Quick Log"
-            android:textColor="@color/text_secondary"
-            android:textStyle="bold" />
+            android:hint="Ask about your logs, diet, or workouts..."
+            android:background="@drawable/bg_edittext"
+            android:padding="12dp"
+            android:textSize="14sp"
+            android:maxLines="4"
+            android:inputType="textShortMessage"
+            android:textColor="@color/text_primary" />
+
+        <ImageButton
+            android:id="@+id/btnSendChat"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="8dp"
+            android:backgroundTint="@color/primary"
+            android:src="@android:drawable/ic_menu_send"
+            app:tint="@color/white"
+            android:background="@drawable/bg_round_btn" />
     </LinearLayout>
 
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="@color/border" />
-
-    <!-- Frame Container for Sub Views -->
-    <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1">
-
-        <!-- Chat Container -->
-        <RelativeLayout
-            android:id="@+id/rlChatContainer"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:visibility="visible">
-
-            <ImageButton
-                android:id="@+id/btnClearChat"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:layout_alignParentEnd="true"
-                android:layout_margin="8dp"
-                android:background="@android:color/transparent"
-                android:src="@android:drawable/ic_menu_delete"
-                app:tint="@color/text_secondary" />
-
-            <ScrollView
-                android:id="@+id/svChat"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_above="@id/llInputArea"
-                android:layout_below="@id/btnClearChat"
-                android:fillViewport="true"
-                android:paddingHorizontal="16dp">
-
-                <LinearLayout
-                    android:id="@+id/llChatMessages"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:paddingBottom="16dp" />
-            </ScrollView>
-
-            <LinearLayout
-                android:id="@+id/llInputArea"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_alignParentBottom="true"
-                android:padding="8dp"
-                android:background="@color/white"
-                android:gravity="center_vertical">
-
-                <EditText
-                    android:id="@+id/etChatInput"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:hint="Describe what you ate..."
-                    android:background="@drawable/bg_edittext"
-                    android:padding="12dp"
-                    android:textSize="14sp"
-                    android:maxLines="4"
-                    android:inputType="textShortMessage"
-                    android:textColor="@color/text_primary" />
-
-                <ImageButton
-                    android:id="@+id/btnSendChat"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:layout_marginStart="8dp"
-                    android:backgroundTint="@color/primary"
-                    android:src="@android:drawable/ic_menu_send"
-                    app:tint="@color/white"
-                    android:background="@drawable/bg_round_btn" />
-            </LinearLayout>
-        </RelativeLayout>
-
-        <!-- Quick Log Container -->
-        <ScrollView
-            android:id="@+id/svQuickLog"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:fillViewport="true"
-            android:padding="16dp"
-            android:visibility="gone">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Manual Meal Entry"
-                    android:textColor="@color/text_primary"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="16dp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Meal Description"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="11sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="6dp" />
-
-                <EditText
-                    android:id="@+id/etMealDesc"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:minHeight="44dp"
-                    android:background="@drawable/bg_edittext"
-                    android:padding="12dp"
-                    android:textSize="14sp"
-                    android:hint="e.g. Oatmeal with Bananas"
-                    android:textColor="@color/text_primary"
-                    android:layout_marginBottom="16dp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Calories (kcal)"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="11sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="6dp" />
-
-                <EditText
-                    android:id="@+id/etMealCalories"
-                    android:layout_width="match_parent"
-                    android:layout_height="44dp"
-                    android:background="@drawable/bg_edittext"
-                    android:paddingHorizontal="12dp"
-                    android:textSize="14sp"
-                    android:inputType="numberDecimal"
-                    android:hint="0"
-                    android:textColor="@color/text_primary"
-                    android:layout_marginBottom="16dp" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:weightSum="3"
-                    android:layout_marginBottom="24dp">
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:layout_marginEnd="4dp">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Protein (g)"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="11sp"
-                            android:textStyle="bold"
-                            android:layout_marginBottom="6dp" />
-                        <EditText
-                            android:id="@+id/etMealProtein"
-                            android:layout_width="match_parent"
-                            android:layout_height="44dp"
-                            android:background="@drawable/bg_edittext"
-                            android:inputType="numberDecimal"
-                            android:gravity="center"
-                            android:hint="0"
-                            android:textColor="@color/text_primary" />
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:layout_marginHorizontal="2dp">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Carbs (g)"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="11sp"
-                            android:textStyle="bold"
-                            android:layout_marginBottom="6dp" />
-                        <EditText
-                            android:id="@+id/etMealCarbs"
-                            android:layout_width="match_parent"
-                            android:layout_height="44dp"
-                            android:background="@drawable/bg_edittext"
-                            android:inputType="numberDecimal"
-                            android:gravity="center"
-                            android:hint="0"
-                            android:textColor="@color/text_primary" />
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:layout_marginStart="4dp">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Fat (g)"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="11sp"
-                            android:textStyle="bold"
-                            android:layout_marginBottom="6dp" />
-                        <EditText
-                            android:id="@+id/etMealFat"
-                            android:layout_width="match_parent"
-                            android:layout_height="44dp"
-                            android:background="@drawable/bg_edittext"
-                            android:inputType="numberDecimal"
-                            android:gravity="center"
-                            android:hint="0"
-                            android:textColor="@color/text_primary" />
-                    </LinearLayout>
-                </LinearLayout>
-
-                <Button
-                    android:id="@+id/btnQuickLogSubmit"
-                    android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:text="Log Meal Record"
-                    android:textColor="@color/white"
-                    android:backgroundTint="@color/primary"
-                    app:cornerRadius="6dp" />
-            </LinearLayout>
-        </ScrollView>
-    </FrameLayout>
-</LinearLayout>
+</RelativeLayout>

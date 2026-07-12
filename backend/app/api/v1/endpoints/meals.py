@@ -3,7 +3,7 @@ import re
 import json
 import traceback
 from typing import Any, List, Dict
-from datetime import datetime, time, timezone
+from datetime import datetime, time, timezone, timedelta
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -61,6 +61,35 @@ async def chat_meal_logging(payload: ChatTextRequest, current_user = Depends(dep
             detail="Gemini API Key is not configured on the server."
         )
 
+    # Fetch past 7 days of user activity
+    seven_days_ago = datetime.now(timezone.utc) - timedelta(days=7)
+    
+    cursor_past_meals = db["meals"].find({
+        "user_id": ObjectId(current_user["id"]),
+        "timestamp": {"$gte": seven_days_ago}
+    }).sort("timestamp", 1)
+    past_meals = await cursor_past_meals.to_list(length=500)
+
+    cursor_past_workouts = db["workouts"].find({
+        "user_id": ObjectId(current_user["id"]),
+        "timestamp": {"$gte": seven_days_ago}
+    }).sort("timestamp", 1)
+    past_workouts = await cursor_past_workouts.to_list(length=500)
+
+    # Summarize past 7 days of meals
+    meals_summary = []
+    for m in past_meals:
+        dt_str = m["timestamp"].strftime("%Y-%m-%d")
+        meals_summary.append(f"- {dt_str}: {m.get('description', 'Meal')} ({m.get('calories', 0.0)} kcal, P:{m.get('protein', 0.0)}g, C:{m.get('carbs', 0.0)}g, F:{m.get('fat', 0.0)}g)")
+    meals_text = "\n".join(meals_summary) if meals_summary else "No meals logged in the last 7 days."
+
+    # Summarize past 7 days of workouts
+    workouts_summary = []
+    for w in past_workouts:
+        dt_str = w["timestamp"].strftime("%Y-%m-%d")
+        workouts_summary.append(f"- {dt_str}: {w.get('exercise', 'Workout')} ({w.get('sets', 0)} sets, {w.get('reps', 0)} reps, {w.get('calories_burned', 0.0)} kcal burned)")
+    workouts_text = "\n".join(workouts_summary) if workouts_summary else "No workouts logged in the last 7 days."
+
     user_msg = {
         "user_id": ObjectId(current_user["id"]),
         "role": "user",
@@ -80,17 +109,19 @@ async def chat_meal_logging(payload: ChatTextRequest, current_user = Depends(dep
         })
 
     system_instruction = (
-        "You are FitPilot's expert nutrition assistant specializing in Indian cuisine and nutrition. "
-        "Your task is to help the user log their meals in plain text. "
-        "Follow these rules strictly:\n"
-        "1. Map what they ate to ICMR (Indian Council of Medical Research) standard portion sizes.\n"
-        "2. Provide nutritional values: Calories (kcal), Protein (g), Carbohydrates (g), and Fats (g).\n"
-        "3. If the portion size, quantity, or specific food detail is unclear, ask exactly ONE clarifying question. E.g., 'Did you have 1 or 2 medium rotis?'\n"
-        "4. Be transparent and honest about approximations made in calculations.\n"
-        "5. Output your analysis in a clear, bulleted summary format. Keep responses brief and clean to use minimum tokens.\n"
+        "You are FitPilot's premium AI Fitness and Nutrition Coach. "
+        "You have direct access to the user's past 7 days of nutrition/diet and physical exercises logs.\n\n"
+        f"PAST 7 DAYS MEALS:\n{meals_text}\n\n"
+        f"PAST 7 DAYS WORKOUTS:\n{workouts_text}\n\n"
+        "Your tasks:\n"
+        "1. Guide the user on what they should do today (dietary target, macronutrients intake, workout focus) based on their 7-day logs.\n"
+        "2. Answer fitness and diet questions professionally.\n"
+        "3. If they talk about eating a meal, analyze and log it using ICMR standard portion sizes, estimating Calories (kcal), Protein (g), Carbohydrates (g), and Fats (g).\n"
+        "4. If portion size, quantity, or specific food detail is unclear to log, ask exactly ONE clarifying question.\n"
+        "5. Output analysis in a clear, bulleted summary format. Keep responses brief, friendly, and structured.\n"
         "6. If you have enough details to log the meal, you MUST append a tag at the very end of your response: "
         "<meal_log>{\"description\": \"brief summary of food items\", \"calories\": 123.0, \"protein\": 12.0, \"carbs\": 34.0, \"fat\": 5.0}</meal_log>. "
-        "If you are asking a clarifying question or details are missing, do NOT append any <meal_log> tag."
+        "Otherwise, do NOT append any <meal_log> tag."
     )
 
     gemini_payload = {
@@ -217,22 +248,6 @@ async def get_adaptation_advice(current_user = Depends(deps.get_current_user), d
             total_carbs += m.get("carbs", 0.0)
             total_fat += m.get("fat", 0.0)
 
-        if not workouts and not meals:
-            empty_msg = (
-                "No activity recorded today yet. Log your exercises or chat to log meals in the other tabs, "
-                "and this panel will compute remaining macro allowances."
-            )
-            await db["users"].update_one(
-                {"_id": ObjectId(current_user["id"])},
-                {"$set": {
-                    "latest_adaptation": {
-                        "recommendation": empty_msg,
-                        "timestamp": datetime.now(timezone.utc)
-                    }
-                }}
-            )
-            return {"recommendation": empty_msg}
-
         target_calories = 2000.0 + total_workout_calories
         target_protein = weight * 1.6
         target_carbs = weight * 3.0
@@ -243,30 +258,39 @@ async def get_adaptation_advice(current_user = Depends(deps.get_current_user), d
         carbs_diff = target_carbs - total_carbs
         fat_diff = target_fat - total_fat
 
-        lines = []
-        lines.append(f"Based on today's logs (Burned: {total_workout_calories:.0f} kcal, Consumed: {total_meal_calories:.0f} kcal):\n")
-
-        if cal_diff > 100:
-            lines.append(f"• Energy Demand: Consuming an additional {cal_diff:.0f} kcal is recommended to meet metabolic targets.")
-        elif cal_diff < -100:
-            lines.append(f"• Energy Surplus: You are in a calorie surplus of {abs(cal_diff):.0f} kcal. Focus on hydration.")
+        # Workout section
+        workout_lines = []
+        if workouts:
+            workout_lines.append(f"• Active training detected: You performed {len(workouts)} sessions, burning a total of {total_workout_calories:.0f} kcal. Ensure proper muscle recovery and rest.")
         else:
-            lines.append("• Energy Balance: Your daily calorie intake matches your metabolic demand.")
+            workout_lines.append("• No workouts logged today yet. Consider starting an AI-assisted Squat, Pushup, Lunge, or Curl session.")
+
+        # Nutrition section
+        nutrition_lines = []
+        if cal_diff > 100:
+            nutrition_lines.append(f"• Energy Demand: Consume an additional {cal_diff:.0f} kcal (Burned: {total_workout_calories:.0f} kcal, Consumed: {total_meal_calories:.0f} kcal).")
+        elif cal_diff < -100:
+            nutrition_lines.append(f"• Energy Surplus: You have exceeded today's targets by {abs(cal_diff):.0f} kcal. Focus on hydration.")
+        else:
+            nutrition_lines.append("• Energy Balance: Your daily calorie intake matches your metabolic demand.")
 
         if prot_diff > 5:
-            lines.append(f"• Protein Shortfall: You need {prot_diff:.0f}g more protein. Active muscle recovery requires amino acids.")
+            nutrition_lines.append(f"• Protein Shortfall: Need {prot_diff:.0f}g more protein to support muscle synthesis.")
         else:
-            lines.append("• Protein Target: Met! Protein levels are sufficient for protein synthesis.")
+            nutrition_lines.append(f"• Protein Target: Met! Protein intake is sufficient ({total_protein:.0f}g).")
 
         if carbs_diff > 10:
-            lines.append(f"• Carbohydrate Needs: You need {carbs_diff:.0f}g more carbs to replenish muscle glycogen stores.")
+            nutrition_lines.append(f"• Carbohydrate Needs: Need {carbs_diff:.0f}g more carbs to replenish glycogen stores.")
         else:
-            lines.append("• Carbohydrate Target: Met. Keep further carb intake minimal.")
+            nutrition_lines.append("• Carbohydrate Target: Met. Keep further carb intake minimal.")
 
         if fat_diff > 5:
-            lines.append(f"• Lipids Level: You need {fat_diff:.0f}g more healthy fats for hormonal support.")
+            nutrition_lines.append(f"• Lipids Level: Need {fat_diff:.0f}g more healthy fats for hormonal support.")
 
-        advice_text = "\n".join(lines)
+        advice_text = (
+            "[WORKOUT ADAPTATION]\n" + "\n".join(workout_lines) + "\n\n" +
+            "[NUTRITION ADAPTATION]\n" + "\n".join(nutrition_lines)
+        )
         
         await db["users"].update_one(
             {"_id": ObjectId(current_user["id"])},

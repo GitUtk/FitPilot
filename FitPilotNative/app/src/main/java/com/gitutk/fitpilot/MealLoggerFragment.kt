@@ -21,26 +21,12 @@ class MealLoggerFragment : Fragment() {
 
     private lateinit var apiService: ApiService
     
-    // Tab toggles
-    private lateinit var btnTabChat: Button
-    private lateinit var btnTabQuickLog: Button
-    private lateinit var rlChatContainer: RelativeLayout
-    private lateinit var svQuickLog: ScrollView
-
     // Chat views
     private lateinit var llChatMessages: LinearLayout
     private lateinit var etChatInput: EditText
     private lateinit var btnSendChat: ImageButton
     private lateinit var btnClearChat: ImageButton
     private lateinit var svChat: ScrollView
-
-    // Quick Log views
-    private lateinit var etMealDesc: EditText
-    private lateinit var etMealCalories: EditText
-    private lateinit var etMealProtein: EditText
-    private lateinit var etMealCarbs: EditText
-    private lateinit var etMealFat: EditText
-    private lateinit var btnQuickLogSubmit: Button
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -50,12 +36,6 @@ class MealLoggerFragment : Fragment() {
 
         apiService = (activity as MainActivity).apiService
 
-        // Bind layouts
-        btnTabChat = view.findViewById(R.id.btnTabChat)
-        btnTabQuickLog = view.findViewById(R.id.btnTabQuickLog)
-        rlChatContainer = view.findViewById(R.id.rlChatContainer)
-        svQuickLog = view.findViewById(R.id.svQuickLog)
-
         // Bind Chat
         llChatMessages = view.findViewById(R.id.llChatMessages)
         etChatInput = view.findViewById(R.id.etChatInput)
@@ -63,40 +43,12 @@ class MealLoggerFragment : Fragment() {
         btnClearChat = view.findViewById(R.id.btnClearChat)
         svChat = view.findViewById(R.id.svChat)
 
-        // Bind Quick Log
-        etMealDesc = view.findViewById(R.id.etMealDesc)
-        etMealCalories = view.findViewById(R.id.etMealCalories)
-        etMealProtein = view.findViewById(R.id.etMealProtein)
-        etMealCarbs = view.findViewById(R.id.etMealCarbs)
-        etMealFat = view.findViewById(R.id.etMealFat)
-        btnQuickLogSubmit = view.findViewById(R.id.btnQuickLogSubmit)
-
-        setupTabs()
         setupChat()
-        setupQuickLog()
 
         // Fetch chat history on start
         fetchChatHistory()
 
         return view
-    }
-
-    private fun setupTabs() {
-        btnTabChat.setOnClickListener {
-            // Activate Chat tab
-            btnTabChat.setTextColor(ContextCompat.getColor(requireContext(), R.color.primary))
-            btnTabQuickLog.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_secondary))
-            rlChatContainer.visibility = View.VISIBLE
-            svQuickLog.visibility = View.GONE
-        }
-
-        btnTabQuickLog.setOnClickListener {
-            // Activate Quick Log tab
-            btnTabQuickLog.setTextColor(ContextCompat.getColor(requireContext(), R.color.primary))
-            btnTabChat.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_secondary))
-            svQuickLog.visibility = View.VISIBLE
-            rlChatContainer.visibility = View.GONE
-        }
     }
 
     private fun setupChat() {
@@ -113,7 +65,7 @@ class MealLoggerFragment : Fragment() {
                 activity?.runOnUiThread {
                     btnSendChat.isEnabled = true
                     if (success && data != null) {
-                        val reply = data.optString("text", "I've logged that for you.")
+                        val reply = data.optString("text", "I've processed your request.")
                         addMessageBubble(reply, false)
                         
                         // If food items were parsed, let the user know by a toast
@@ -122,7 +74,7 @@ class MealLoggerFragment : Fragment() {
                             Toast.makeText(context, "Logged ${foodItems.length()} items to metabolic log!", Toast.LENGTH_SHORT).show()
                         }
                     } else {
-                        addMessageBubble(error ?: "Failed to log meal via chat. Please try again.", false)
+                        addMessageBubble(error ?: "Failed to get advice from coach. Please try again.", false)
                     }
                     scrollToBottom()
                 }
@@ -222,48 +174,6 @@ class MealLoggerFragment : Fragment() {
     private fun scrollToBottom() {
         svChat.post {
             svChat.fullScroll(View.FOCUS_DOWN)
-        }
-    }
-
-    private fun setupQuickLog() {
-        btnQuickLogSubmit.setOnClickListener {
-            val desc = etMealDesc.text.toString().trim()
-            val calStr = etMealCalories.text.toString().trim()
-            val protStr = etMealProtein.text.toString().trim()
-            val carbStr = etMealCarbs.text.toString().trim()
-            val fatStr = etMealFat.text.toString().trim()
-
-            if (desc.isEmpty() || calStr.isEmpty()) {
-                Toast.makeText(context, "Please fill in description and calories", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-
-            val calories = calStr.toDouble()
-            val protein = if (protStr.isEmpty()) 0.0 else protStr.toDouble()
-            val carbs = if (carbStr.isEmpty()) 0.0 else carbStr.toDouble()
-            val fat = if (fatStr.isEmpty()) 0.0 else fatStr.toDouble()
-
-            btnQuickLogSubmit.isEnabled = false
-            apiService.logMeal(desc, calories, protein, carbs, fat) { success, data, error ->
-                activity?.runOnUiThread {
-                    btnQuickLogSubmit.isEnabled = true
-                    if (success) {
-                        Toast.makeText(context, "Meal logged successfully!", Toast.LENGTH_SHORT).show()
-                        
-                        // Reset forms
-                        etMealDesc.setText("")
-                        etMealCalories.setText("")
-                        etMealProtein.setText("")
-                        etMealCarbs.setText("")
-                        etMealFat.setText("")
-                        
-                        // Switch to Chat tab to see dashboard updates
-                        btnTabChat.performClick()
-                    } else {
-                        Toast.makeText(context, error ?: "Failed to log meal", Toast.LENGTH_LONG).show()
-                    }
-                }
-            }
         }
     }
 
