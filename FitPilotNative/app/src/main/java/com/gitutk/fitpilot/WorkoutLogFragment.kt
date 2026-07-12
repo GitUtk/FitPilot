@@ -24,16 +24,12 @@ class WorkoutLogFragment : Fragment() {
     private lateinit var llItemPushup: LinearLayout
     private lateinit var llItemLunge: LinearLayout
     private lateinit var llItemPress: LinearLayout
-    private lateinit var llItemPlank: LinearLayout
-    private lateinit var llItemSitup: LinearLayout
 
     private lateinit var tvItemSquat: TextView
     private lateinit var tvItemCurl: TextView
     private lateinit var tvItemPushup: TextView
     private lateinit var tvItemLunge: TextView
     private lateinit var tvItemPress: TextView
-    private lateinit var tvItemPlank: TextView
-    private lateinit var tvItemSitup: TextView
 
     // Control panel bindings
     private lateinit var tvSelectedExerciseTitle: TextView
@@ -50,12 +46,10 @@ class WorkoutLogFragment : Fragment() {
     private lateinit var tvFocusLegs: TextView
     private lateinit var tvFocusArms: TextView
     private lateinit var tvFocusChest: TextView
-    private lateinit var tvFocusCore: TextView
 
     private lateinit var pbLegsFocus: ProgressBar
     private lateinit var pbArmsFocus: ProgressBar
     private lateinit var pbChestFocus: ProgressBar
-    private lateinit var pbCoreFocus: ProgressBar
 
     // Weekly bars
     private lateinit var pbMon: ProgressBar
@@ -88,16 +82,12 @@ class WorkoutLogFragment : Fragment() {
         llItemPushup = view.findViewById(R.id.llItemPushup)
         llItemLunge = view.findViewById(R.id.llItemLunge)
         llItemPress = view.findViewById(R.id.llItemPress)
-        llItemPlank = view.findViewById(R.id.llItemPlank)
-        llItemSitup = view.findViewById(R.id.llItemSitup)
 
         tvItemSquat = view.findViewById(R.id.tvItemSquat)
         tvItemCurl = view.findViewById(R.id.tvItemCurl)
         tvItemPushup = view.findViewById(R.id.tvItemPushup)
         tvItemLunge = view.findViewById(R.id.tvItemLunge)
         tvItemPress = view.findViewById(R.id.tvItemPress)
-        tvItemPlank = view.findViewById(R.id.tvItemPlank)
-        tvItemSitup = view.findViewById(R.id.tvItemSitup)
 
         tvSelectedExerciseTitle = view.findViewById(R.id.tvSelectedExerciseTitle)
         tvRepsLabel = view.findViewById(R.id.tvRepsLabel)
@@ -112,7 +102,6 @@ class WorkoutLogFragment : Fragment() {
         tvFocusLegs = view.findViewById(R.id.tvFocusLegs)
         tvFocusArms = view.findViewById(R.id.tvFocusArms)
         tvFocusChest = view.findViewById(R.id.tvFocusChest)
-        tvFocusCore = view.findViewById(R.id.tvFocusCore)
 
         pbMon = view.findViewById(R.id.pbMon)
         pbTue = view.findViewById(R.id.pbTue)
@@ -126,7 +115,6 @@ class WorkoutLogFragment : Fragment() {
         pbLegsFocus = view.findViewById(R.id.pbLegsFocus)
         pbArmsFocus = view.findViewById(R.id.pbArmsFocus)
         pbChestFocus = view.findViewById(R.id.pbChestFocus)
-        pbCoreFocus = view.findViewById(R.id.pbCoreFocus)
         
         // Metrics Grid Bindings
         tvTotalVolume = view.findViewById(R.id.tvTotalVolume)
@@ -160,8 +148,6 @@ class WorkoutLogFragment : Fragment() {
                 R.id.llItemPushup -> "pushup"
                 R.id.llItemLunge -> "lunge"
                 R.id.llItemPress -> "press"
-                R.id.llItemPlank -> "plank"
-                R.id.llItemSitup -> "situp"
                 else -> "squat"
             }
             selectExercise(key)
@@ -172,8 +158,6 @@ class WorkoutLogFragment : Fragment() {
         llItemPushup.setOnClickListener(clickListener)
         llItemLunge.setOnClickListener(clickListener)
         llItemPress.setOnClickListener(clickListener)
-        llItemPlank.setOnClickListener(clickListener)
-        llItemSitup.setOnClickListener(clickListener)
     }
 
     private fun selectExercise(key: String) {
@@ -193,10 +177,6 @@ class WorkoutLogFragment : Fragment() {
         tvItemLunge.setTypeface(null, android.graphics.Typeface.NORMAL)
         tvItemPress.setTextColor(inactiveColor)
         tvItemPress.setTypeface(null, android.graphics.Typeface.NORMAL)
-        tvItemPlank.setTextColor(inactiveColor)
-        tvItemPlank.setTypeface(null, android.graphics.Typeface.NORMAL)
-        tvItemSitup.setTextColor(inactiveColor)
-        tvItemSitup.setTypeface(null, android.graphics.Typeface.NORMAL)
 
         // Highlight selected
         val (selectedText, displayName) = when (key) {
@@ -205,8 +185,6 @@ class WorkoutLogFragment : Fragment() {
             "pushup" -> Pair(tvItemPushup, "Push-Ups")
             "lunge" -> Pair(tvItemLunge, "Lunges")
             "press" -> Pair(tvItemPress, "Overhead Press")
-            "plank" -> Pair(tvItemPlank, "Plank")
-            "situp" -> Pair(tvItemSitup, "Sit-ups")
             else -> Pair(tvItemSquat, "Squats")
         }
 
@@ -256,22 +234,6 @@ class WorkoutLogFragment : Fragment() {
                 etWeight.isEnabled = true
                 tvRepsLabel.text = "Reps"
                 tvWeightLabel.text = "Weight (kg)"
-            }
-            "plank" -> {
-                etSets.setText("3")
-                etReps.setText("60")
-                etWeight.setText("0")
-                etWeight.isEnabled = false
-                tvRepsLabel.text = "Secs"
-                tvWeightLabel.text = "Weight (None)"
-            }
-            "situp" -> {
-                etSets.setText("3")
-                etReps.setText("15")
-                etWeight.setText("0")
-                etWeight.isEnabled = false
-                tvRepsLabel.text = "Reps"
-                tvWeightLabel.text = "Weight (None)"
             }
         }
     }
@@ -336,7 +298,6 @@ class WorkoutLogFragment : Fragment() {
         var legsSets = 0
         var armsSets = 0
         var chestSets = 0
-        var coreSets = 0
 
         // Weekly activity volume distribution (Mon-Sun)
         val weeklyVolume = DoubleArray(7)
@@ -362,7 +323,6 @@ class WorkoutLogFragment : Fragment() {
                 "squat", "lunge" -> legsSets += sets
                 "curl", "press" -> armsSets += sets
                 "pushup" -> chestSets += sets
-                "plank", "situp" -> coreSets += sets
             }
 
             // Calculate weekly day distribution
@@ -397,33 +357,28 @@ class WorkoutLogFragment : Fragment() {
         tvCompletionScore.text = "$totalSessions Sessions"
 
         // 2. Update Muscle Focus Percentages
-        val totalMuscleSets = legsSets + armsSets + chestSets + coreSets
+        val totalMuscleSets = legsSets + armsSets + chestSets
         if (totalMuscleSets > 0) {
             val legsPct = (legsSets * 100) / totalMuscleSets
             val armsPct = (armsSets * 100) / totalMuscleSets
             val chestPct = (chestSets * 100) / totalMuscleSets
-            val corePct = (coreSets * 100) / totalMuscleSets
 
             tvFocusLegs.text = "$legsPct%"
             tvFocusArms.text = "$armsPct%"
             tvFocusChest.text = "$chestPct%"
-            tvFocusCore.text = "$corePct%"
 
             pbLegsFocus.progress = legsPct
             pbArmsFocus.progress = armsPct
             pbChestFocus.progress = chestPct
-            pbCoreFocus.progress = corePct
         } else {
             // Default split if no logs exist yet
-            tvFocusLegs.text = "40%"
-            tvFocusArms.text = "25%"
+            tvFocusLegs.text = "45%"
+            tvFocusArms.text = "35%"
             tvFocusChest.text = "20%"
-            tvFocusCore.text = "15%"
 
-            pbLegsFocus.progress = 40
-            pbArmsFocus.progress = 25
+            pbLegsFocus.progress = 45
+            pbArmsFocus.progress = 35
             pbChestFocus.progress = 20
-            pbCoreFocus.progress = 15
         }
 
         // 3. Update Form Quality rating

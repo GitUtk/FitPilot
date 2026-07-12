@@ -26,7 +26,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Workouts &amp; AI Scan"
+                    android:text="Workouts"
                     android:textColor="@color/text_primary"
                     android:textSize="22sp"
                     android:textStyle="bold" />
@@ -34,33 +34,11 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Select exercise and log sets or track with AI"
+                    android:text="Select exercise and log your sets"
                     android:textColor="@color/text_secondary"
                     android:textSize="12sp"
                     android:layout_marginTop="2dp" />
             </LinearLayout>
-
-            <!-- Streak badge -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignParentEnd="true"
-                android:layout_centerVertical="true"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="0dp"
-                app:strokeColor="@color/border"
-                app:strokeWidth="1dp"
-                app:cardBackgroundColor="@color/card_background">
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="🔥 5-Day Streak"
-                    android:textColor="@color/text_primary"
-                    android:textSize="12sp"
-                    android:textStyle="bold"
-                    android:paddingHorizontal="12dp"
-                    android:paddingVertical="6dp" />
-            </com.google.android.material.card.MaterialCardView>
         </RelativeLayout>
 
         <!-- Horizontal Scrollable Exercises Section -->
@@ -208,58 +186,6 @@
                         android:layout_marginTop="6dp" />
                 </LinearLayout>
 
-                <!-- Plank Item -->
-                <LinearLayout
-                    android:id="@+id/llItemPlank"
-                    android:layout_width="80dp"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:gravity="center"
-                    android:padding="8dp"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:background="?android:attr/selectableItemBackground">
-                    <ImageView
-                        android:id="@+id/ivItemPlank"
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
-                        android:src="@drawable/plank" />
-                    <TextView
-                        android:id="@+id/tvItemPlank"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Plank"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="11sp"
-                        android:layout_marginTop="6dp" />
-                </LinearLayout>
-
-                <!-- Situp Item -->
-                <LinearLayout
-                    android:id="@+id/llItemSitup"
-                    android:layout_width="80dp"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:gravity="center"
-                    android:padding="8dp"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:background="?android:attr/selectableItemBackground">
-                    <ImageView
-                        android:id="@+id/ivItemSitup"
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
-                        android:src="@drawable/situp" />
-                    <TextView
-                        android:id="@+id/tvItemSitup"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Sit-ups"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="11sp"
-                        android:layout_marginTop="6dp" />
-                </LinearLayout>
-
             </LinearLayout>
         </HorizontalScrollView>
 
@@ -380,34 +306,31 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:weightSum="2">
+                    android:orientation="horizontal">
 
                     <Button
                         android:id="@+id/btnLogSet"
                         android:layout_width="0dp"
                         android:layout_height="46dp"
                         android:layout_weight="1"
-                        android:layout_marginEnd="6dp"
                         android:text="Log Set"
                         android:textColor="@color/white"
                         android:backgroundTint="@color/primary"
                         app:cornerRadius="6dp" />
 
-                    <Button
+                    <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnStartAI"
-                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                        android:layout_width="0dp"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton.Icon"
+                        android:layout_width="46dp"
                         android:layout_height="46dp"
-                        android:layout_weight="1"
-                        android:layout_marginStart="6dp"
-                        android:text="Start AI Scan"
-                        android:textColor="@color/primary"
+                        android:layout_marginStart="12dp"
+                        android:padding="0dp"
                         app:strokeColor="@color/border"
                         app:cornerRadius="6dp"
-                        app:icon="@android:drawable/ic_menu_camera"
-                        app:iconGravity="textStart"
-                        app:iconTint="@color/primary" />
+                        app:icon="@drawable/ic_fa_pose"
+                        app:iconPadding="0dp"
+                        app:iconTint="@color/primary"
+                        app:iconGravity="textStart" />
                 </LinearLayout>
 
             </LinearLayout>
@@ -624,41 +547,6 @@
                                 android:layout_marginTop="2dp"
                                 android:progress="20"
                                 android:progressTint="@color/success"
-                                android:progressBackgroundTint="@color/border" />
-                        </LinearLayout>
-
-                        <!-- Core -->
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="vertical">
-                            <RelativeLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content">
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="Core (Plank/Sit-ups)"
-                                    android:textColor="@color/text_primary"
-                                    android:textSize="9sp" />
-                                <TextView
-                                    android:id="@+id/tvFocusCore"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:layout_alignParentEnd="true"
-                                    android:text="10%"
-                                    android:textColor="@color/text_primary"
-                                    android:textSize="9sp"
-                                    android:textStyle="bold" />
-                            </RelativeLayout>
-                            <ProgressBar
-                                android:id="@+id/pbCoreFocus"
-                                style="@android:style/Widget.ProgressBar.Horizontal"
-                                android:layout_width="match_parent"
-                                android:layout_height="4dp"
-                                android:layout_marginTop="2dp"
-                                android:progress="10"
-                                android:progressTint="#EAB308"
                                 android:progressBackgroundTint="@color/border" />
                         </LinearLayout>
 
