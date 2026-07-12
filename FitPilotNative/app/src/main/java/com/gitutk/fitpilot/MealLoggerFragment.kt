@@ -164,14 +164,24 @@ class MealLoggerFragment : Fragment() {
 
     private fun addMessageBubble(text: String, isUser: Boolean) {
         val context = context ?: return
+        val density = context.resources.displayMetrics.density
+        
+        val marginTopBottom = (8 * density).toInt()
+        val marginOpposite = (64 * density).toInt()
+        val marginSide = (8 * density).toInt()
+        val cardRadius = 18 * density
+        val strokePx = (1.5f * density).toInt()
+        val padHorizontal = (16 * density).toInt()
+        val padVertical = (12 * density).toInt()
+
         val bubble = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply {
-                topMargin = 6
-                bottomMargin = 6
+                topMargin = marginTopBottom
+                bottomMargin = marginTopBottom
             }
             gravity = if (isUser) Gravity.END else Gravity.START
         }
@@ -181,19 +191,19 @@ class MealLoggerFragment : Fragment() {
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply {
-                leftMargin = if (isUser) 64 else 12
-                rightMargin = if (isUser) 12 else 64
+                leftMargin = if (isUser) marginOpposite else marginSide
+                rightMargin = if (isUser) marginSide else marginOpposite
             }
             cardElevation = 0f
-            radius = 18f
-            setContentPadding(16, 12, 16, 12)
+            radius = cardRadius
+            setContentPadding(padHorizontal, padVertical, padHorizontal, padVertical)
 
             if (isUser) {
                 setCardBackgroundColor(ContextCompat.getColorStateList(context, R.color.primary))
             } else {
                 setCardBackgroundColor(ContextCompat.getColorStateList(context, R.color.card_background))
                 setStrokeColor(ContextCompat.getColorStateList(context, R.color.border))
-                strokeWidth = 2
+                strokeWidth = strokePx
             }
         }
 
@@ -201,7 +211,7 @@ class MealLoggerFragment : Fragment() {
             this.text = if (isUser) text else parseMarkdown(text)
             setTextColor(ContextCompat.getColor(context, if (isUser) R.color.white else R.color.text_primary))
             setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 14f)
-            setLineSpacing(3f, 1.15f)
+            setLineSpacing(4f, 1.2f)
         }
 
         card.addView(tv)
