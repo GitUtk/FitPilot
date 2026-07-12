@@ -49,7 +49,6 @@ Here is a visual walkthrough of the application interface and user flow:
 ## Key Features
 
 ### 1. Daily Activity Dashboard
-- **Step Tracker**: Accesses the native hardware pedometer. Tracks live step counts alongside calculated walk distance (km) and active calorie expenditure. Falls back to a mock step simulator on emulators/web.
 - **AI Adaptation Engine**: Analyzes your logged meals and physical exercises for today, calculates metabolic targets based on body weight guidelines, and outputs macro and calorie guidance saved directly to your profile.
 - **Real-Time Performance Indicators**: Dynamic grid highlighting active calorie burn, logged calories consumed, exercise exertion rate, and macronutrient balance (Protein/Carbs/Fat).
 

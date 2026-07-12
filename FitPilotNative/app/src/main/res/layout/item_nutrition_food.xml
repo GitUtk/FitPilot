@@ -6,6 +6,7 @@
     android:layout_marginBottom="16dp"
     app:cardCornerRadius="10dp"
     app:cardElevation="1dp"
+    app:cardBackgroundColor="@color/white"
     app:strokeColor="@color/border"
     app:strokeWidth="1dp">
 
@@ -20,7 +21,7 @@
             android:layout_width="match_parent"
             android:layout_height="160dp"
             android:scaleType="centerCrop"
-            android:src="@drawable/paneer_bhurji" />
+            android:src="@drawable/egg_scramble" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -37,7 +38,7 @@
                     android:id="@+id/tvFoodName"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Paneer Bhurji"
+                    android:text="Eggs/Egg Scramble"
                     android:textColor="@color/text_primary"
                     android:textSize="16sp"
                     android:textStyle="bold"
@@ -66,7 +67,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
-                android:text="Serving: 1 plate (150g)"
+                android:text="Serving: 3 scrambled eggs (150g)"
                 android:textColor="@color/text_secondary"
                 android:textSize="11sp" />
 
@@ -76,7 +77,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:text="Fresh paneer scrambled with onions, tomatoes and green chillies. Ideal for a high protein vegetarian diet."
+                android:text="Soft, fluffy scrambled eggs cooked in a pan with a touch of butter. The ultimate quick protein source for busy study nights."
                 android:textColor="@color/text_secondary"
                 android:textSize="12sp" />
 

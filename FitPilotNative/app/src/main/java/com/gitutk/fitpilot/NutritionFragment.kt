@@ -25,15 +25,15 @@ class NutritionFragment : Fragment() {
 
     private val allFoods = listOf(
         NutritionItem(
-            name = "Paneer Bhurji",
+            name = "Eggs/Egg Scramble",
             category = "HIGH PROTEIN",
-            serving = "Serving: 1 plate (150g)",
-            description = "Fresh cottage cheese scrambled with chopped onions, tomatoes, and traditional Indian spices. Great for muscle rebuilding.",
+            serving = "Serving: 3 scrambled eggs (150g)",
+            description = "Soft, fluffy scrambled eggs cooked in a pan with a touch of butter. The ultimate quick protein source for busy study nights.",
             protein = 18.0,
-            carbs = 6.0,
-            fat = 22.0,
-            calories = 320.0,
-            imageResId = R.drawable.paneer_bhurji
+            carbs = 2.0,
+            fat = 15.0,
+            calories = 220.0,
+            imageResId = R.drawable.egg_scramble
         ),
         NutritionItem(
             name = "Moong Dal Chilla",
@@ -47,15 +47,15 @@ class NutritionFragment : Fragment() {
             imageResId = R.drawable.moong_dal_chilla
         ),
         NutritionItem(
-            name = "Egg Bhurji",
-            category = "HIGH PROTEIN",
-            serving = "Serving: 3 eggs (140g)",
-            description = "Indian-style scrambled eggs loaded with micro-nutrients, green chillies, coriander, and antioxidant rich onions.",
-            protein = 16.0,
-            carbs = 4.0,
-            fat = 18.0,
-            calories = 280.0,
-            imageResId = R.drawable.egg_bhurji
+            name = "Bread Peanut Butter",
+            category = "HEALTHY FATS",
+            serving = "Serving: 2 slices (80g)",
+            description = "Toasted whole wheat bread spread with creamy peanut butter. Quick, cheap, and calorie-dense for busy college students.",
+            protein = 12.0,
+            carbs = 24.0,
+            fat = 16.0,
+            calories = 290.0,
+            imageResId = R.drawable.bread_peanut_butter
         ),
         NutritionItem(
             name = "Soya Chunks Curry",
@@ -80,14 +80,14 @@ class NutritionFragment : Fragment() {
             imageResId = R.drawable.moong_sprouts
         ),
         NutritionItem(
-            name = "Greek Yogurt Bowl",
+            name = "Masala Dahi / Greek Yogurt",
             category = "HIGH PROTEIN",
             serving = "Serving: 1 bowl (180g)",
-            description = "Thick, creamy greek yogurt topped with seasonal fresh berries and a drizzle of honey. Promotes gut health and sustained energy.",
-            protein = 15.0,
-            carbs = 12.0,
-            fat = 3.0,
-            calories = 140.0,
+            description = "Creamy dahi or Greek yogurt topped with roasted peanuts, cumin, and black salt. Excellent for digestion and muscle recovery.",
+            protein = 18.0,
+            carbs = 10.0,
+            fat = 10.0,
+            calories = 200.0,
             imageResId = R.drawable.greek_yogurt
         ),
         NutritionItem(
