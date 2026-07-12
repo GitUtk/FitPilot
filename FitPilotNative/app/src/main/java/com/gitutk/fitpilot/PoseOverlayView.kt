@@ -20,16 +20,16 @@ class PoseOverlayView @JvmOverloads constructor(
     private var imageWidth: Int = 1
     private var imageHeight: Int = 1
 
-    // Neon paint configurations
+    // Red paint configurations
     private val paintCircle = Paint().apply {
-        color = Color.parseColor("#10B981") // Success Green
+        color = Color.parseColor("#FF0000")
         style = Paint.Style.FILL
         isAntiAlias = true
     }
 
     private val paintLine = Paint().apply {
-        color = Color.parseColor("#3B82F6") // Accent Blue
-        strokeWidth = 6f
+        color = Color.parseColor("#FF0000")
+        strokeWidth = 8f
         style = Paint.Style.STROKE
         isAntiAlias = true
     }
@@ -92,12 +92,19 @@ class PoseOverlayView @JvmOverloads constructor(
             }
         }
 
-        // Draw joint points
+        // Draw joint points (excluding face joints)
+        val faceParts = setOf(
+            BodyPart.NOSE,
+            BodyPart.LEFT_EYE,
+            BodyPart.RIGHT_EYE,
+            BodyPart.LEFT_EAR,
+            BodyPart.RIGHT_EAR
+        )
         for (keypoint in person.keyPoints) {
-            if (keypoint.score > 0.2f) {
+            if (keypoint.score > 0.2f && keypoint.bodyPart !in faceParts) {
                 val x = keypoint.coordinate.x * scaleX
                 val y = keypoint.coordinate.y * scaleY
-                canvas.drawCircle(x, y, 10f, paintCircle)
+                canvas.drawCircle(x, y, 16f, paintCircle)
             }
         }
     }

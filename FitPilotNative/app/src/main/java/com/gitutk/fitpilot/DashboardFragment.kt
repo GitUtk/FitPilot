@@ -47,6 +47,7 @@ class DashboardFragment : Fragment(), SensorEventListener {
     
     private lateinit var btnSync: Button
     private lateinit var btnLogout: ImageButton
+    private lateinit var llSuggestionsContainer: android.widget.LinearLayout
 
     // Sensor state
     private var sensorManager: SensorManager? = null
@@ -82,6 +83,7 @@ class DashboardFragment : Fragment(), SensorEventListener {
         
         btnSync = view.findViewById(R.id.btnSync)
         btnLogout = view.findViewById(R.id.btnLogout)
+        llSuggestionsContainer = view.findViewById(R.id.llSuggestionsContainer)
 
         // Set Date
         val sdf = SimpleDateFormat("EEEE, MMM dd", Locale.getDefault())
@@ -102,6 +104,7 @@ class DashboardFragment : Fragment(), SensorEventListener {
 
         setupSteps()
         refreshStats()
+        populateFoodSuggestions()
 
         return view
     }
@@ -256,6 +259,61 @@ class DashboardFragment : Fragment(), SensorEventListener {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == 101 && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
             registerSensor()
+        }
+    }
+
+    private data class FoodSuggestion(
+        val name: String,
+        val tag: String,
+        val calories: String,
+        val macros: String,
+        val imageResId: Int
+    )
+
+    private fun populateFoodSuggestions() {
+        val context = context ?: return
+        llSuggestionsContainer.removeAllViews()
+
+        val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+        val suggestions = when {
+            hour in 5..11 -> listOf(
+                FoodSuggestion("Moong Dal Chilla", "AI BREAKFAST PICK", "250 kcal", "P: 14g • C: 28g • F: 8g", R.drawable.moong_dal_chilla),
+                FoodSuggestion("Paneer Bhurji", "HIGH PROTEIN MORNING", "320 kcal", "P: 18g • C: 6g • F: 22g", R.drawable.paneer_bhurji),
+                FoodSuggestion("Egg Bhurji", "BALANCED LIFESTYLE", "290 kcal", "P: 20g • C: 4g • F: 21g", R.drawable.egg_bhurji)
+            )
+            hour in 12..17 -> listOf(
+                FoodSuggestion("Paneer Bhurji", "AI LUNCH PICK", "320 kcal", "P: 18g • C: 6g • F: 22g", R.drawable.paneer_bhurji),
+                FoodSuggestion("Moong Dal Chilla", "LIGHT & FIBER RICH", "250 kcal", "P: 14g • C: 28g • F: 8g", R.drawable.moong_dal_chilla),
+                FoodSuggestion("Egg Bhurji", "LEAN PROTEIN BUILD", "290 kcal", "P: 20g • C: 4g • F: 21g", R.drawable.egg_bhurji)
+            )
+            else -> listOf(
+                FoodSuggestion("Egg Bhurji", "AI DINNER PICK", "290 kcal", "P: 20g • C: 4g • F: 21g", R.drawable.egg_bhurji),
+                FoodSuggestion("Paneer Bhurji", "POST-WORKOUT RECOVERY", "320 kcal", "P: 18g • C: 6g • F: 22g", R.drawable.paneer_bhurji),
+                FoodSuggestion("Moong Dal Chilla", "EASY DIGESTION SNACK", "250 kcal", "P: 14g • C: 28g • F: 8g", R.drawable.moong_dal_chilla)
+            )
+        }
+
+        val inflater = LayoutInflater.from(context)
+        for (item in suggestions) {
+            val cardView = inflater.inflate(R.layout.item_food_suggestion, llSuggestionsContainer, false)
+            
+            val ivFoodImage = cardView.findViewById<android.widget.ImageView>(R.id.ivFoodImage)
+            val tvFoodTag = cardView.findViewById<TextView>(R.id.tvFoodTag)
+            val tvFoodName = cardView.findViewById<TextView>(R.id.tvFoodName)
+            val tvFoodCalories = cardView.findViewById<TextView>(R.id.tvFoodCalories)
+            val tvFoodMacros = cardView.findViewById<TextView>(R.id.tvFoodMacros)
+
+            ivFoodImage.setImageResource(item.imageResId)
+            tvFoodTag.text = item.tag
+            tvFoodName.text = item.name
+            tvFoodCalories.text = item.calories
+            tvFoodMacros.text = item.macros
+
+            cardView.setOnClickListener {
+                Toast.makeText(context, "Try logging '${item.name}' in the Food AI section!", Toast.LENGTH_LONG).show()
+            }
+
+            llSuggestionsContainer.addView(cardView)
         }
     }
 }
