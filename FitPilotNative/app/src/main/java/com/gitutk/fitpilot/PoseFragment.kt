@@ -77,6 +77,8 @@ class PoseFragment : Fragment() {
     private var pushupStage = "up"
     private var lungeStage = "up"
     private var pressStage = "down"
+    private var lastPlankSecond = 0L
+    private var situpStage = "down"
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -127,6 +129,8 @@ class PoseFragment : Fragment() {
             "pushup" -> "Push-Ups AI Session"
             "lunge" -> "Lunges AI Session"
             "press" -> "Press AI Session"
+            "plank" -> "Plank AI Session"
+            "situp" -> "Sit-ups AI Session"
             else -> "${exerciseMode.uppercase()} AI Session"
         }
 
@@ -441,6 +445,72 @@ class PoseFragment : Fragment() {
                     }
                 }
             }
+            "plank" -> {
+                val shoulder = person.keyPoints.find { it.bodyPart == BodyPart.LEFT_SHOULDER }
+                val hip = person.keyPoints.find { it.bodyPart == BodyPart.LEFT_HIP }
+                val knee = person.keyPoints.find { it.bodyPart == BodyPart.LEFT_KNEE }
+
+                if (shoulder != null && hip != null && knee != null &&
+                    shoulder.score > 0.2f && hip.score > 0.2f && knee.score > 0.2f
+                ) {
+                    val angle = calculateAngle(
+                        shoulder.coordinate.x, shoulder.coordinate.y,
+                        hip.coordinate.x, hip.coordinate.y,
+                        knee.coordinate.x, knee.coordinate.y
+                    )
+
+                    tvHudAngle.text = "${angle.toInt()}°"
+
+                    if (angle > 160.0) {
+                        tvHudForm.text = "ACTIVE"
+                        tvHudFeedback.text = "Plank active! Keep holding."
+                        val now = System.currentTimeMillis()
+                        if (lastPlankSecond == 0L) {
+                            lastPlankSecond = now
+                        } else if (now - lastPlankSecond >= 1000L) {
+                            repsCount++
+                            tvHudReps.text = repsCount.toString()
+                            lastPlankSecond = now
+                        }
+                    } else {
+                        tvHudForm.text = "ALIGN"
+                        tvHudFeedback.text = "Keep hips level with shoulders!"
+                        lastPlankSecond = 0L
+                    }
+                }
+            }
+            "situp" -> {
+                val shoulder = person.keyPoints.find { it.bodyPart == BodyPart.LEFT_SHOULDER }
+                val hip = person.keyPoints.find { it.bodyPart == BodyPart.LEFT_HIP }
+                val knee = person.keyPoints.find { it.bodyPart == BodyPart.LEFT_KNEE }
+
+                if (shoulder != null && hip != null && knee != null &&
+                    shoulder.score > 0.2f && hip.score > 0.2f && knee.score > 0.2f
+                ) {
+                    val angle = calculateAngle(
+                        shoulder.coordinate.x, shoulder.coordinate.y,
+                        hip.coordinate.x, hip.coordinate.y,
+                        knee.coordinate.x, knee.coordinate.y
+                    )
+
+                    tvHudAngle.text = "${angle.toInt()}°"
+
+                    if (angle > 140.0) {
+                        situpStage = "down"
+                        tvHudForm.text = "DOWN"
+                        tvHudFeedback.text = "Sit all the way up!"
+                    } else if (angle < 65.0 && situpStage == "down") {
+                        situpStage = "up"
+                        repsCount++
+                        tvHudReps.text = repsCount.toString()
+                        tvHudForm.text = "UP"
+                        tvHudFeedback.text = "Great contraction! Lower slowly."
+                    } else if (angle < 65.0) {
+                        tvHudForm.text = "UP"
+                        tvHudFeedback.text = "Control the descent."
+                    }
+                }
+            }
         }
     }
 
@@ -453,6 +523,8 @@ class PoseFragment : Fragment() {
                 "pushup" -> 0.0
                 "lunge" -> 20.0
                 "press" -> 30.0
+                "plank" -> 0.0
+                "situp" -> 0.0
                 else -> 10.0
             }
 

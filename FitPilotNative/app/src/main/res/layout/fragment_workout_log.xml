@@ -12,900 +12,396 @@
         android:orientation="vertical"
         android:padding="20dp">
 
-        <!-- Header -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Workout Log"
-            android:textColor="@color/text_primary"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="16dp" />
-
-        <!-- Squats Card -->
-        <com.google.android.material.card.MaterialCardView
+        <!-- Top Header Row -->
+        <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            app:cardCornerRadius="8dp"
-            app:cardElevation="1dp"
-            app:strokeColor="@color/border"
-            app:strokeWidth="1dp">
+            android:layout_marginBottom="20dp">
 
             <LinearLayout
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
-
-                <RelativeLayout
-                    android:id="@+id/rlSquatHeader"
-                    android:layout_width="match_parent"
+                
+                <TextView
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:padding="16dp"
-                    android:background="?android:attr/selectableItemBackground"
+                    android:text="Workouts &amp; AI Scan"
+                    android:textColor="@color/text_primary"
+                    android:textSize="22sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Select exercise and log sets or track with AI"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp"
+                    android:layout_marginTop="2dp" />
+            </LinearLayout>
+
+            <!-- Streak badge -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/border"
+                app:strokeWidth="1dp"
+                app:cardBackgroundColor="@color/card_background">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🔥 5-Day Streak"
+                    android:textColor="@color/text_primary"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:paddingHorizontal="12dp"
+                    android:paddingVertical="6dp" />
+            </com.google.android.material.card.MaterialCardView>
+        </RelativeLayout>
+
+        <!-- Horizontal Scrollable Exercises Section -->
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scrollbars="none"
+            android:layout_marginBottom="20dp">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingVertical="4dp">
+
+                <!-- Squat Item -->
+                <LinearLayout
+                    android:id="@+id/llItemSquat"
+                    android:layout_width="80dp"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:padding="8dp"
                     android:clickable="true"
-                    android:focusable="true">
-
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/mcvSquatIcon"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
-                        app:cardCornerRadius="6dp"
-                        app:cardElevation="0dp"
-                        app:cardBackgroundColor="#F4F4F5">
-                        <ImageView
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:src="@drawable/squat"
-                            android:padding="4dp" />
-                    </com.google.android.material.card.MaterialCardView>
-
+                    android:focusable="true"
+                    android:background="?android:attr/selectableItemBackground">
+                    <ImageView
+                        android:id="@+id/ivItemSquat"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:src="@drawable/squat" />
                     <TextView
+                        android:id="@+id/tvItemSquat"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_toEndOf="@id/mcvSquatIcon"
-                        android:layout_centerVertical="true"
-                        android:layout_marginStart="16dp"
                         android:text="Squats"
                         android:textColor="@color/text_primary"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
-
-                    <ImageView
-                        android:id="@+id/ivSquatChevron"
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:layout_alignParentEnd="true"
-                        android:layout_centerVertical="true"
-                        android:src="@android:drawable/arrow_down_float"
-                        app:tint="@color/text_secondary" />
-                </RelativeLayout>
-
-                <!-- Squat Dropdown Panel -->
-                <LinearLayout
-                    android:id="@+id/llSquatDropdown"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="20dp"
-                    android:visibility="gone">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:weightSum="3"
-                        android:layout_marginBottom="16dp">
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical"
-                            android:layout_marginEnd="4dp">
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Sets"
-                                android:textColor="@color/text_secondary"
-                                android:textSize="11sp"
-                                android:textStyle="bold"
-                                android:layout_marginBottom="6dp" />
-                            <EditText
-                                android:id="@+id/etSquatSets"
-                                android:layout_width="match_parent"
-                                android:layout_height="44dp"
-                                android:background="@drawable/bg_edittext"
-                                android:inputType="number"
-                                android:text="3"
-                                android:gravity="center"
-                                android:textColor="@color/text_primary" />
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical"
-                            android:layout_marginHorizontal="2dp">
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Reps"
-                                android:textColor="@color/text_secondary"
-                                android:textSize="11sp"
-                                android:textStyle="bold"
-                                android:layout_marginBottom="6dp" />
-                            <EditText
-                                android:id="@+id/etSquatReps"
-                                android:layout_width="match_parent"
-                                android:layout_height="44dp"
-                                android:background="@drawable/bg_edittext"
-                                android:inputType="number"
-                                android:text="10"
-                                android:gravity="center"
-                                android:textColor="@color/text_primary" />
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical"
-                            android:layout_marginStart="4dp">
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Weight (kg)"
-                                android:textColor="@color/text_secondary"
-                                android:textSize="11sp"
-                                android:textStyle="bold"
-                                android:layout_marginBottom="6dp" />
-                            <EditText
-                                android:id="@+id/etSquatWeight"
-                                android:layout_width="match_parent"
-                                android:layout_height="44dp"
-                                android:background="@drawable/bg_edittext"
-                                android:inputType="numberDecimal"
-                                android:text="40"
-                                android:gravity="center"
-                                android:textColor="@color/text_primary" />
-                        </LinearLayout>
-                    </LinearLayout>
-
-                    <Button
-                        android:id="@+id/btnSquatLog"
-                        android:layout_width="match_parent"
-                        android:layout_height="44dp"
-                        android:text="Log Set"
-                        android:textColor="@color/white"
-                        android:backgroundTint="@color/primary"
-                        app:cornerRadius="6dp" />
-
-                    <!-- AI Link -->
-                    <Button
-                        android:id="@+id/btnSquatAI"
-                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                        android:layout_width="match_parent"
-                        android:layout_height="44dp"
-                        android:layout_marginTop="12dp"
-                        android:text="Start Real-Time AI Scan"
-                        android:textColor="@color/primary"
-                        app:strokeColor="@color/border"
-                        app:cornerRadius="6dp"
-                        app:icon="@android:drawable/ic_menu_camera"
-                        app:iconGravity="textStart"
-                        app:iconTint="@color/primary" />
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:layout_marginTop="6dp" />
                 </LinearLayout>
 
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- Bicep Curls Card -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            app:cardCornerRadius="8dp"
-            app:cardElevation="1dp"
-            app:strokeColor="@color/border"
-            app:strokeWidth="1dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical">
-
-                <RelativeLayout
-                    android:id="@+id/rlCurlHeader"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:padding="16dp"
-                    android:background="?android:attr/selectableItemBackground"
-                    android:clickable="true"
-                    android:focusable="true">
-
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/mcvCurlIcon"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
-                        app:cardCornerRadius="6dp"
-                        app:cardElevation="0dp"
-                        app:cardBackgroundColor="#F4F4F5">
-                        <ImageView
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:src="@drawable/curl"
-                            android:padding="4dp" />
-                    </com.google.android.material.card.MaterialCardView>
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_toEndOf="@id/mcvCurlIcon"
-                        android:layout_centerVertical="true"
-                        android:layout_marginStart="16dp"
-                        android:text="Bicep Curls"
-                        android:textColor="@color/text_primary"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
-
-                    <ImageView
-                        android:id="@+id/ivCurlChevron"
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:layout_alignParentEnd="true"
-                        android:layout_centerVertical="true"
-                        android:src="@android:drawable/arrow_down_float"
-                        app:tint="@color/text_secondary" />
-                </RelativeLayout>
-
-                <!-- Curl Dropdown Panel -->
+                <!-- Curl Item -->
                 <LinearLayout
-                    android:id="@+id/llCurlDropdown"
-                    android:layout_width="match_parent"
+                    android:id="@+id/llItemCurl"
+                    android:layout_width="80dp"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="20dp"
-                    android:visibility="gone">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:weightSum="3"
-                        android:layout_marginBottom="16dp">
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical"
-                            android:layout_marginEnd="4dp">
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Sets"
-                                android:textColor="@color/text_secondary"
-                                android:textSize="11sp"
-                                android:textStyle="bold"
-                                android:layout_marginBottom="6dp" />
-                            <EditText
-                                android:id="@+id/etCurlSets"
-                                android:layout_width="match_parent"
-                                android:layout_height="44dp"
-                                android:background="@drawable/bg_edittext"
-                                android:inputType="number"
-                                android:text="3"
-                                android:gravity="center"
-                                android:textColor="@color/text_primary" />
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical"
-                            android:layout_marginHorizontal="2dp">
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Reps"
-                                android:textColor="@color/text_secondary"
-                                android:textSize="11sp"
-                                android:textStyle="bold"
-                                android:layout_marginBottom="6dp" />
-                            <EditText
-                                android:id="@+id/etCurlReps"
-                                android:layout_width="match_parent"
-                                android:layout_height="44dp"
-                                android:background="@drawable/bg_edittext"
-                                android:inputType="number"
-                                android:text="12"
-                                android:gravity="center"
-                                android:textColor="@color/text_primary" />
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical"
-                            android:layout_marginStart="4dp">
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Weight (kg)"
-                                android:textColor="@color/text_secondary"
-                                android:textSize="11sp"
-                                android:textStyle="bold"
-                                android:layout_marginBottom="6dp" />
-                            <EditText
-                                android:id="@+id/etCurlWeight"
-                                android:layout_width="match_parent"
-                                android:layout_height="44dp"
-                                android:background="@drawable/bg_edittext"
-                                android:inputType="numberDecimal"
-                                android:text="15"
-                                android:gravity="center"
-                                android:textColor="@color/text_primary" />
-                        </LinearLayout>
-                    </LinearLayout>
-
-                    <Button
-                        android:id="@+id/btnCurlLog"
-                        android:layout_width="match_parent"
-                        android:layout_height="44dp"
-                        android:text="Log Set"
-                        android:textColor="@color/white"
-                        android:backgroundTint="@color/primary"
-                        app:cornerRadius="6dp" />
-
-                    <!-- AI Link -->
-                    <Button
-                        android:id="@+id/btnCurlAI"
-                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                        android:layout_width="match_parent"
-                        android:layout_height="44dp"
-                        android:layout_marginTop="12dp"
-                        android:text="Start Real-Time AI Scan"
-                        android:textColor="@color/primary"
-                        app:strokeColor="@color/border"
-                        app:cornerRadius="6dp"
-                        app:icon="@android:drawable/ic_menu_camera"
-                        app:iconGravity="textStart"
-                        app:iconTint="@color/primary" />
-                </LinearLayout>
-
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- Pushups Card -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            app:cardCornerRadius="8dp"
-            app:cardElevation="1dp"
-            app:strokeColor="@color/border"
-            app:strokeWidth="1dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical">
-
-                <RelativeLayout
-                    android:id="@+id/rlPushupHeader"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:padding="16dp"
-                    android:background="?android:attr/selectableItemBackground"
+                    android:gravity="center"
+                    android:padding="8dp"
                     android:clickable="true"
-                    android:focusable="true">
-
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/mcvPushupIcon"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
-                        app:cardCornerRadius="6dp"
-                        app:cardElevation="0dp"
-                        app:cardBackgroundColor="#F4F4F5">
-                        <ImageView
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:src="@drawable/pushup"
-                            android:padding="4dp" />
-                    </com.google.android.material.card.MaterialCardView>
-
+                    android:focusable="true"
+                    android:background="?android:attr/selectableItemBackground">
+                    <ImageView
+                        android:id="@+id/ivItemCurl"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:src="@drawable/curl" />
                     <TextView
+                        android:id="@+id/tvItemCurl"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_toEndOf="@id/mcvPushupIcon"
-                        android:layout_centerVertical="true"
-                        android:layout_marginStart="16dp"
+                        android:text="Curls"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp"
+                        android:layout_marginTop="6dp" />
+                </LinearLayout>
+
+                <!-- Pushup Item -->
+                <LinearLayout
+                    android:id="@+id/llItemPushup"
+                    android:layout_width="80dp"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:padding="8dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?android:attr/selectableItemBackground">
+                    <ImageView
+                        android:id="@+id/ivItemPushup"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:src="@drawable/pushup" />
+                    <TextView
+                        android:id="@+id/tvItemPushup"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
                         android:text="Push-Ups"
-                        android:textColor="@color/text_primary"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
-
-                    <ImageView
-                        android:id="@+id/ivPushupChevron"
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:layout_alignParentEnd="true"
-                        android:layout_centerVertical="true"
-                        android:src="@android:drawable/arrow_down_float"
-                        app:tint="@color/text_secondary" />
-                </RelativeLayout>
-
-                <!-- Pushup Dropdown Panel -->
-                <LinearLayout
-                    android:id="@+id/llPushupDropdown"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="20dp"
-                    android:visibility="gone">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:weightSum="3"
-                        android:layout_marginBottom="16dp">
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical"
-                            android:layout_marginEnd="4dp">
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Sets"
-                                android:textColor="@color/text_secondary"
-                                android:textSize="11sp"
-                                android:textStyle="bold"
-                                android:layout_marginBottom="6dp" />
-                            <EditText
-                                android:id="@+id/etPushupSets"
-                                android:layout_width="match_parent"
-                                android:layout_height="44dp"
-                                android:background="@drawable/bg_edittext"
-                                android:inputType="number"
-                                android:text="3"
-                                android:gravity="center"
-                                android:textColor="@color/text_primary" />
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical"
-                            android:layout_marginHorizontal="2dp">
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Reps"
-                                android:textColor="@color/text_secondary"
-                                android:textSize="11sp"
-                                android:textStyle="bold"
-                                android:layout_marginBottom="6dp" />
-                            <EditText
-                                android:id="@+id/etPushupReps"
-                                android:layout_width="match_parent"
-                                android:layout_height="44dp"
-                                android:background="@drawable/bg_edittext"
-                                android:inputType="number"
-                                android:text="15"
-                                android:gravity="center"
-                                android:textColor="@color/text_primary" />
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical"
-                            android:layout_marginStart="4dp">
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Weight (kg)"
-                                android:textColor="@color/text_secondary"
-                                android:textSize="11sp"
-                                android:textStyle="bold"
-                                android:layout_marginBottom="6dp" />
-                            <EditText
-                                android:id="@+id/etPushupWeight"
-                                android:layout_width="match_parent"
-                                android:layout_height="44dp"
-                                android:background="@drawable/bg_edittext"
-                                android:inputType="numberDecimal"
-                                android:text="0"
-                                android:gravity="center"
-                                android:textColor="@color/text_primary" />
-                        </LinearLayout>
-                    </LinearLayout>
-
-                    <Button
-                        android:id="@+id/btnPushupLog"
-                        android:layout_width="match_parent"
-                        android:layout_height="44dp"
-                        android:text="Log Set"
-                        android:textColor="@color/white"
-                        android:backgroundTint="@color/primary"
-                        app:cornerRadius="6dp" />
-
-                    <!-- AI Link -->
-                    <Button
-                        android:id="@+id/btnPushupAI"
-                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                        android:layout_width="match_parent"
-                        android:layout_height="44dp"
-                        android:layout_marginTop="12dp"
-                        android:text="Start Real-Time AI Scan"
-                        android:textColor="@color/primary"
-                        app:strokeColor="@color/border"
-                        app:cornerRadius="6dp"
-                        app:icon="@android:drawable/ic_menu_camera"
-                        app:iconGravity="textStart"
-                        app:iconTint="@color/primary" />
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp"
+                        android:layout_marginTop="6dp" />
                 </LinearLayout>
 
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- Lunges Card -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            app:cardCornerRadius="8dp"
-            app:cardElevation="1dp"
-            app:strokeColor="@color/border"
-            app:strokeWidth="1dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical">
-
-                <RelativeLayout
-                    android:id="@+id/rlLungeHeader"
-                    android:layout_width="match_parent"
+                <!-- Lunge Item -->
+                <LinearLayout
+                    android:id="@+id/llItemLunge"
+                    android:layout_width="80dp"
                     android:layout_height="wrap_content"
-                    android:padding="16dp"
-                    android:background="?android:attr/selectableItemBackground"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:padding="8dp"
                     android:clickable="true"
-                    android:focusable="true">
-
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/mcvLungeIcon"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
-                        app:cardCornerRadius="6dp"
-                        app:cardElevation="0dp"
-                        app:cardBackgroundColor="#F4F4F5">
-                        <ImageView
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:src="@drawable/lunge"
-                            android:padding="4dp" />
-                    </com.google.android.material.card.MaterialCardView>
-
+                    android:focusable="true"
+                    android:background="?android:attr/selectableItemBackground">
+                    <ImageView
+                        android:id="@+id/ivItemLunge"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:src="@drawable/lunge" />
                     <TextView
+                        android:id="@+id/tvItemLunge"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_toEndOf="@id/mcvLungeIcon"
-                        android:layout_centerVertical="true"
-                        android:layout_marginStart="16dp"
                         android:text="Lunges"
-                        android:textColor="@color/text_primary"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp"
+                        android:layout_marginTop="6dp" />
+                </LinearLayout>
 
-                    <ImageView
-                        android:id="@+id/ivLungeChevron"
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:layout_alignParentEnd="true"
-                        android:layout_centerVertical="true"
-                        android:src="@android:drawable/arrow_down_float"
-                        app:tint="@color/text_secondary" />
-                </RelativeLayout>
-
-                <!-- Lunge Dropdown Panel -->
+                <!-- Press Item -->
                 <LinearLayout
-                    android:id="@+id/llLungeDropdown"
-                    android:layout_width="match_parent"
+                    android:id="@+id/llItemPress"
+                    android:layout_width="80dp"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="20dp"
-                    android:visibility="gone">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
+                    android:gravity="center"
+                    android:padding="8dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?android:attr/selectableItemBackground">
+                    <ImageView
+                        android:id="@+id/ivItemPress"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:src="@drawable/press" />
+                    <TextView
+                        android:id="@+id/tvItemPress"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:weightSum="3"
-                        android:layout_marginBottom="16dp">
+                        android:text="Press"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp"
+                        android:layout_marginTop="6dp" />
+                </LinearLayout>
 
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical"
-                            android:layout_marginEnd="4dp">
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Sets"
-                                android:textColor="@color/text_secondary"
-                                android:textSize="11sp"
-                                android:textStyle="bold"
-                                android:layout_marginBottom="6dp" />
-                            <EditText
-                                android:id="@+id/etLungeSets"
-                                android:layout_width="match_parent"
-                                android:layout_height="44dp"
-                                android:background="@drawable/bg_edittext"
-                                android:inputType="number"
-                                android:text="3"
-                                android:gravity="center"
-                                android:textColor="@color/text_primary" />
-                        </LinearLayout>
+                <!-- Plank Item -->
+                <LinearLayout
+                    android:id="@+id/llItemPlank"
+                    android:layout_width="80dp"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:padding="8dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?android:attr/selectableItemBackground">
+                    <ImageView
+                        android:id="@+id/ivItemPlank"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:src="@drawable/plank" />
+                    <TextView
+                        android:id="@+id/tvItemPlank"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Plank"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp"
+                        android:layout_marginTop="6dp" />
+                </LinearLayout>
 
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical"
-                            android:layout_marginHorizontal="2dp">
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Reps"
-                                android:textColor="@color/text_secondary"
-                                android:textSize="11sp"
-                                android:textStyle="bold"
-                                android:layout_marginBottom="6dp" />
-                            <EditText
-                                android:id="@+id/etLungeReps"
-                                android:layout_width="match_parent"
-                                android:layout_height="44dp"
-                                android:background="@drawable/bg_edittext"
-                                android:inputType="number"
-                                android:text="12"
-                                android:gravity="center"
-                                android:textColor="@color/text_primary" />
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical"
-                            android:layout_marginStart="4dp">
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Weight (kg)"
-                                android:textColor="@color/text_secondary"
-                                android:textSize="11sp"
-                                android:textStyle="bold"
-                                android:layout_marginBottom="6dp" />
-                            <EditText
-                                android:id="@+id/etLungeWeight"
-                                android:layout_width="match_parent"
-                                android:layout_height="44dp"
-                                android:background="@drawable/bg_edittext"
-                                android:inputType="numberDecimal"
-                                android:text="20"
-                                android:gravity="center"
-                                android:textColor="@color/text_primary" />
-                        </LinearLayout>
-                    </LinearLayout>
-
-                    <Button
-                        android:id="@+id/btnLungeLog"
-                        android:layout_width="match_parent"
-                        android:layout_height="44dp"
-                        android:text="Log Set"
-                        android:textColor="@color/white"
-                        android:backgroundTint="@color/primary"
-                        app:cornerRadius="6dp" />
-
-                    <!-- AI Link -->
-                    <Button
-                        android:id="@+id/btnLungeAI"
-                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                        android:layout_width="match_parent"
-                        android:layout_height="44dp"
-                        android:layout_marginTop="12dp"
-                        android:text="Start Real-Time AI Scan"
-                        android:textColor="@color/primary"
-                        app:strokeColor="@color/border"
-                        app:cornerRadius="6dp"
-                        app:icon="@android:drawable/ic_menu_camera"
-                        app:iconGravity="textStart"
-                        app:iconTint="@color/primary" />
+                <!-- Situp Item -->
+                <LinearLayout
+                    android:id="@+id/llItemSitup"
+                    android:layout_width="80dp"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:padding="8dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?android:attr/selectableItemBackground">
+                    <ImageView
+                        android:id="@+id/ivItemSitup"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:src="@drawable/situp" />
+                    <TextView
+                        android:id="@+id/tvItemSitup"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Sit-ups"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp"
+                        android:layout_marginTop="6dp" />
                 </LinearLayout>
 
             </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+        </HorizontalScrollView>
 
-        <!-- Overhead Press Card -->
+        <!-- Selected Exercise Configuration Control Panel Card -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="24dp"
-            app:cardCornerRadius="8dp"
+            app:cardCornerRadius="12dp"
             app:cardElevation="1dp"
             app:strokeColor="@color/border"
-            app:strokeWidth="1dp">
+            app:strokeWidth="1dp"
+            app:cardBackgroundColor="@color/card_background">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical">
+                android:orientation="vertical"
+                android:padding="16dp">
 
-                <RelativeLayout
-                    android:id="@+id/rlPressHeader"
-                    android:layout_width="match_parent"
+                <TextView
+                    android:id="@+id/tvSelectedExerciseTitle"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:padding="16dp"
-                    android:background="?android:attr/selectableItemBackground"
-                    android:clickable="true"
-                    android:focusable="true">
+                    android:text="Squats Configuration"
+                    android:textColor="@color/text_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="14dp" />
 
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/mcvPressIcon"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
-                        app:cardCornerRadius="6dp"
-                        app:cardElevation="0dp"
-                        app:cardBackgroundColor="#F4F4F5">
-                        <ImageView
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:src="@drawable/press"
-                            android:padding="4dp" />
-                    </com.google.android.material.card.MaterialCardView>
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_toEndOf="@id/mcvPressIcon"
-                        android:layout_centerVertical="true"
-                        android:layout_marginStart="16dp"
-                        android:text="Overhead Press"
-                        android:textColor="@color/text_primary"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
-
-                    <ImageView
-                        android:id="@+id/ivPressChevron"
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:layout_alignParentEnd="true"
-                        android:layout_centerVertical="true"
-                        android:src="@android:drawable/arrow_down_float"
-                        app:tint="@color/text_secondary" />
-                </RelativeLayout>
-
-                <!-- Press Dropdown Panel -->
+                <!-- Input Row -->
                 <LinearLayout
-                    android:id="@+id/llPressDropdown"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="20dp"
-                    android:visibility="gone">
+                    android:orientation="horizontal"
+                    android:weightSum="3"
+                    android:layout_marginBottom="16dp">
 
                     <LinearLayout
-                        android:layout_width="match_parent"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:weightSum="3"
-                        android:layout_marginBottom="16dp">
-
-                        <LinearLayout
-                            android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:layout_marginEnd="4dp">
+                        <TextView
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical"
-                            android:layout_marginEnd="4dp">
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Sets"
-                                android:textColor="@color/text_secondary"
-                                android:textSize="11sp"
-                                android:textStyle="bold"
-                                android:layout_marginBottom="6dp" />
-                            <EditText
-                                android:id="@+id/etPressSets"
-                                android:layout_width="match_parent"
-                                android:layout_height="44dp"
-                                android:background="@drawable/bg_edittext"
-                                android:inputType="number"
-                                android:text="3"
-                                android:gravity="center"
-                                android:textColor="@color/text_primary" />
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical"
-                            android:layout_marginHorizontal="2dp">
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Reps"
-                                android:textColor="@color/text_secondary"
-                                android:textSize="11sp"
-                                android:textStyle="bold"
-                                android:layout_marginBottom="6dp" />
-                            <EditText
-                                android:id="@+id/etPressReps"
-                                android:layout_width="match_parent"
-                                android:layout_height="44dp"
-                                android:background="@drawable/bg_edittext"
-                                android:inputType="number"
-                                android:text="10"
-                                android:gravity="center"
-                                android:textColor="@color/text_primary" />
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical"
-                            android:layout_marginStart="4dp">
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Weight (kg)"
-                                android:textColor="@color/text_secondary"
-                                android:textSize="11sp"
-                                android:textStyle="bold"
-                                android:layout_marginBottom="6dp" />
-                            <EditText
-                                android:id="@+id/etPressWeight"
-                                android:layout_width="match_parent"
-                                android:layout_height="44dp"
-                                android:background="@drawable/bg_edittext"
-                                android:inputType="numberDecimal"
-                                android:text="30"
-                                android:gravity="center"
-                                android:textColor="@color/text_primary" />
-                        </LinearLayout>
+                            android:text="Sets"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:layout_marginBottom="6dp" />
+                        <EditText
+                            android:id="@+id/etSets"
+                            android:layout_width="match_parent"
+                            android:layout_height="44dp"
+                            android:background="@drawable/bg_edittext"
+                            android:inputType="number"
+                            android:text="3"
+                            android:gravity="center"
+                            android:textColor="@color/text_primary" />
                     </LinearLayout>
 
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:layout_marginHorizontal="2dp">
+                        <TextView
+                            android:id="@+id/tvRepsLabel"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Reps"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:layout_marginBottom="6dp" />
+                        <EditText
+                            android:id="@+id/etReps"
+                            android:layout_width="match_parent"
+                            android:layout_height="44dp"
+                            android:background="@drawable/bg_edittext"
+                            android:inputType="number"
+                            android:text="10"
+                            android:gravity="center"
+                            android:textColor="@color/text_primary" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:layout_marginStart="4dp">
+                        <TextView
+                            android:id="@+id/tvWeightLabel"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Weight (kg)"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:layout_marginBottom="6dp" />
+                        <EditText
+                            android:id="@+id/etWeight"
+                            android:layout_width="match_parent"
+                            android:layout_height="44dp"
+                            android:background="@drawable/bg_edittext"
+                            android:inputType="numberDecimal"
+                            android:text="40"
+                            android:gravity="center"
+                            android:textColor="@color/text_primary" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Actions Row -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:weightSum="2">
+
                     <Button
-                        android:id="@+id/btnPressLog"
-                        android:layout_width="match_parent"
-                        android:layout_height="44dp"
+                        android:id="@+id/btnLogSet"
+                        android:layout_width="0dp"
+                        android:layout_height="46dp"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="6dp"
                         android:text="Log Set"
                         android:textColor="@color/white"
                         android:backgroundTint="@color/primary"
                         app:cornerRadius="6dp" />
 
-                    <!-- AI Link -->
                     <Button
-                        android:id="@+id/btnPressAI"
+                        android:id="@+id/btnStartAI"
                         style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                        android:layout_width="match_parent"
-                        android:layout_height="44dp"
-                        android:layout_marginTop="12dp"
-                        android:text="Start Real-Time AI Scan"
+                        android:layout_width="0dp"
+                        android:layout_height="46dp"
+                        android:layout_weight="1"
+                        android:layout_marginStart="6dp"
+                        android:text="Start AI Scan"
                         android:textColor="@color/primary"
                         app:strokeColor="@color/border"
                         app:cornerRadius="6dp"
@@ -917,23 +413,634 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- History Section Title -->
+        <!-- Redesigned Detailed Infographics Section -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="History"
+            android:text="Training Performance &amp; Insights"
             android:textColor="@color/text_primary"
-            android:textSize="14sp"
+            android:textSize="15sp"
             android:textStyle="bold"
             android:layout_marginBottom="12dp" />
 
-        <!-- History Container -->
         <LinearLayout
-            android:id="@+id/llHistoryList"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical" />
+            android:orientation="vertical">
 
+            <!-- Muscle Focus & Form Quality Grid -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:weightSum="2"
+                android:layout_marginBottom="16dp">
+
+                <!-- Left Card: Form Quality -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="6dp"
+                    app:cardCornerRadius="10dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/border"
+                    app:strokeWidth="1dp"
+                    app:cardBackgroundColor="@color/card_background">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="14dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="AI Form Quality"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvFormPercentage"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="94%"
+                            android:textColor="@color/success"
+                            android:textSize="32sp"
+                            android:textStyle="bold"
+                            android:layout_marginTop="4dp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Excellent pacing &amp; alignment tracked."
+                            android:textColor="@color/text_secondary"
+                            android:textSize="10sp"
+                            android:layout_marginTop="4dp" />
+
+                        <!-- Mini progress representation -->
+                        <ProgressBar
+                            style="@android:style/Widget.ProgressBar.Horizontal"
+                            android:layout_width="match_parent"
+                            android:layout_height="6dp"
+                            android:layout_marginTop="12dp"
+                            android:progress="94"
+                            android:progressTint="@color/success"
+                            android:progressBackgroundTint="@color/border" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Right Card: Muscle Focus Distribution -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="6dp"
+                    app:cardCornerRadius="10dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/border"
+                    app:strokeWidth="1dp"
+                    app:cardBackgroundColor="@color/card_background">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="14dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Focus Muscles"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:layout_marginBottom="8dp" />
+
+                        <!-- Legs -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:layout_marginBottom="6dp">
+                            <RelativeLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content">
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Legs (Squats/Lunges)"
+                                    android:textColor="@color/text_primary"
+                                    android:textSize="9sp" />
+                                <TextView
+                                    android:id="@+id/tvFocusLegs"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_alignParentEnd="true"
+                                    android:text="45%"
+                                    android:textColor="@color/text_primary"
+                                    android:textSize="9sp"
+                                    android:textStyle="bold" />
+                            </RelativeLayout>
+                            <ProgressBar
+                                android:id="@+id/pbLegsFocus"
+                                style="@android:style/Widget.ProgressBar.Horizontal"
+                                android:layout_width="match_parent"
+                                android:layout_height="4dp"
+                                android:layout_marginTop="2dp"
+                                android:progress="45"
+                                android:progressTint="@color/accent"
+                                android:progressBackgroundTint="@color/border" />
+                        </LinearLayout>
+
+                        <!-- Arms -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:layout_marginBottom="6dp">
+                            <RelativeLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content">
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Arms (Curls/Press)"
+                                    android:textColor="@color/text_primary"
+                                    android:textSize="9sp" />
+                                <TextView
+                                    android:id="@+id/tvFocusArms"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_alignParentEnd="true"
+                                    android:text="25%"
+                                    android:textColor="@color/text_primary"
+                                    android:textSize="9sp"
+                                    android:textStyle="bold" />
+                            </RelativeLayout>
+                            <ProgressBar
+                                android:id="@+id/pbArmsFocus"
+                                style="@android:style/Widget.ProgressBar.Horizontal"
+                                android:layout_width="match_parent"
+                                android:layout_height="4dp"
+                                android:layout_marginTop="2dp"
+                                android:progress="25"
+                                android:progressTint="@color/primary"
+                                android:progressBackgroundTint="@color/border" />
+                        </LinearLayout>
+
+                        <!-- Chest -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:layout_marginBottom="6dp">
+                            <RelativeLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content">
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Chest (Push-ups)"
+                                    android:textColor="@color/text_primary"
+                                    android:textSize="9sp" />
+                                <TextView
+                                    android:id="@+id/tvFocusChest"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_alignParentEnd="true"
+                                    android:text="20%"
+                                    android:textColor="@color/text_primary"
+                                    android:textSize="9sp"
+                                    android:textStyle="bold" />
+                            </RelativeLayout>
+                            <ProgressBar
+                                android:id="@+id/pbChestFocus"
+                                style="@android:style/Widget.ProgressBar.Horizontal"
+                                android:layout_width="match_parent"
+                                android:layout_height="4dp"
+                                android:layout_marginTop="2dp"
+                                android:progress="20"
+                                android:progressTint="@color/success"
+                                android:progressBackgroundTint="@color/border" />
+                        </LinearLayout>
+
+                        <!-- Core -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical">
+                            <RelativeLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content">
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Core (Plank/Sit-ups)"
+                                    android:textColor="@color/text_primary"
+                                    android:textSize="9sp" />
+                                <TextView
+                                    android:id="@+id/tvFocusCore"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_alignParentEnd="true"
+                                    android:text="10%"
+                                    android:textColor="@color/text_primary"
+                                    android:textSize="9sp"
+                                    android:textStyle="bold" />
+                            </RelativeLayout>
+                            <ProgressBar
+                                android:id="@+id/pbCoreFocus"
+                                style="@android:style/Widget.ProgressBar.Horizontal"
+                                android:layout_width="match_parent"
+                                android:layout_height="4dp"
+                                android:layout_marginTop="2dp"
+                                android:progress="10"
+                                android:progressTint="#EAB308"
+                                android:progressBackgroundTint="@color/border" />
+                        </LinearLayout>
+
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
+
+            <!-- Weekly Active Volume Chart -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="10dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/border"
+                app:strokeWidth="1dp"
+                app:cardBackgroundColor="@color/card_background">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="14dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Weekly Training Load (Volume)"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="12dp" />
+
+                    <!-- Custom horizontal relative bar charts to show training density per day -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:weightSum="7"
+                        android:layout_marginBottom="4dp">
+
+                        <!-- Mon -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="center">
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="M"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="9sp" />
+                            <ProgressBar
+                                style="@android:style/Widget.ProgressBar.Horizontal"
+                                android:id="@+id/pbMon"
+                                android:layout_width="16dp"
+                                android:layout_height="60dp"
+                                android:progress="40"
+                                android:layout_marginTop="4dp"
+                                android:rotation="270"
+                                android:progressTint="@color/accent"
+                                android:progressBackgroundTint="@color/border" />
+                        </LinearLayout>
+
+                        <!-- Tue -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="center">
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="T"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="9sp" />
+                            <ProgressBar
+                                style="@android:style/Widget.ProgressBar.Horizontal"
+                                android:id="@+id/pbTue"
+                                android:layout_width="16dp"
+                                android:layout_height="60dp"
+                                android:progress="60"
+                                android:layout_marginTop="4dp"
+                                android:rotation="270"
+                                android:progressTint="@color/accent"
+                                android:progressBackgroundTint="@color/border" />
+                        </LinearLayout>
+
+                        <!-- Wed -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="center">
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="W"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="9sp" />
+                            <ProgressBar
+                                style="@android:style/Widget.ProgressBar.Horizontal"
+                                android:id="@+id/pbWed"
+                                android:layout_width="16dp"
+                                android:layout_height="60dp"
+                                android:progress="20"
+                                android:layout_marginTop="4dp"
+                                android:rotation="270"
+                                android:progressTint="@color/accent"
+                                android:progressBackgroundTint="@color/border" />
+                        </LinearLayout>
+
+                        <!-- Thu -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="center">
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="T"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="9sp" />
+                            <ProgressBar
+                                style="@android:style/Widget.ProgressBar.Horizontal"
+                                android:id="@+id/pbThu"
+                                android:layout_width="16dp"
+                                android:layout_height="60dp"
+                                android:progress="80"
+                                android:layout_marginTop="4dp"
+                                android:rotation="270"
+                                android:progressTint="@color/accent"
+                                android:progressBackgroundTint="@color/border" />
+                        </LinearLayout>
+
+                        <!-- Fri -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="center">
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="F"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="9sp" />
+                            <ProgressBar
+                                style="@android:style/Widget.ProgressBar.Horizontal"
+                                android:id="@+id/pbFri"
+                                android:layout_width="16dp"
+                                android:layout_height="60dp"
+                                android:progress="50"
+                                android:layout_marginTop="4dp"
+                                android:rotation="270"
+                                android:progressTint="@color/accent"
+                                android:progressBackgroundTint="@color/border" />
+                        </LinearLayout>
+
+                        <!-- Sat -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="center">
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="S"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="9sp" />
+                            <ProgressBar
+                                style="@android:style/Widget.ProgressBar.Horizontal"
+                                android:id="@+id/pbSat"
+                                android:layout_width="16dp"
+                                android:layout_height="60dp"
+                                android:progress="90"
+                                android:layout_marginTop="4dp"
+                                android:rotation="270"
+                                android:progressTint="@color/accent"
+                                android:progressBackgroundTint="@color/border" />
+                        </LinearLayout>
+
+                        <!-- Sun -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="center">
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="S"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="9sp" />
+                            <ProgressBar
+                                style="@android:style/Widget.ProgressBar.Horizontal"
+                                android:id="@+id/pbSun"
+                                android:layout_width="16dp"
+                                android:layout_height="60dp"
+                                android:progress="10"
+                                android:layout_marginTop="4dp"
+                                android:rotation="270"
+                                android:progressTint="@color/accent"
+                                android:progressBackgroundTint="@color/border" />
+                        </LinearLayout>
+
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- 4 Metrics Stats Grid -->
+            <GridLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:columnCount="2"
+                android:rowCount="2"
+                android:layout_marginBottom="10dp">
+
+                <!-- Total Volume Card -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_columnWeight="1"
+                    android:layout_rowWeight="1"
+                    android:layout_marginEnd="6dp"
+                    android:layout_marginBottom="12dp"
+                    app:cardCornerRadius="10dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/border"
+                    app:strokeWidth="1dp"
+                    app:cardBackgroundColor="@color/card_background">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="14dp">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Total Volume"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="10sp"
+                            android:textStyle="bold" />
+                        <TextView
+                            android:id="@+id/tvTotalVolume"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="2,840 kg"
+                            android:textColor="@color/text_primary"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:layout_marginTop="4dp" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Total Sets Card -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_columnWeight="1"
+                    android:layout_rowWeight="1"
+                    android:layout_marginStart="6dp"
+                    android:layout_marginBottom="12dp"
+                    app:cardCornerRadius="10dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/border"
+                    app:strokeWidth="1dp"
+                    app:cardBackgroundColor="@color/card_background">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="14dp">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Total Sets Logged"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="10sp"
+                            android:textStyle="bold" />
+                        <TextView
+                            android:id="@+id/tvTotalSets"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="36 Sets"
+                            android:textColor="@color/text_primary"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:layout_marginTop="4dp" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Completed Reps Card -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_columnWeight="1"
+                    android:layout_rowWeight="1"
+                    android:layout_marginEnd="6dp"
+                    app:cardCornerRadius="10dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/border"
+                    app:strokeWidth="1dp"
+                    app:cardBackgroundColor="@color/card_background">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="14dp">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Total Reps"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="10sp"
+                            android:textStyle="bold" />
+                        <TextView
+                            android:id="@+id/tvTotalReps"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="384 Reps"
+                            android:textColor="@color/text_primary"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:layout_marginTop="4dp" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Completion Score Card -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_columnWeight="1"
+                    android:layout_rowWeight="1"
+                    android:layout_marginStart="6dp"
+                    app:cardCornerRadius="10dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/border"
+                    app:strokeWidth="1dp"
+                    app:cardBackgroundColor="@color/card_background">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="14dp">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Active Workouts"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="10sp"
+                            android:textStyle="bold" />
+                        <TextView
+                            android:id="@+id/tvCompletionScore"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="14 Sessions"
+                            android:textColor="@color/text_primary"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:layout_marginTop="4dp" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+            </GridLayout>
+
+        </LinearLayout>
+
+        <!-- Hidden Loading/Empty Indicators kept for API updates -->
         <ProgressBar
             android:id="@+id/pbHistory"
             android:layout_width="wrap_content"
@@ -946,10 +1053,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:text="No logs found"
             android:textColor="@color/text_secondary"
-            android:textSize="13sp"
-            android:fontStyle="italic"
+            android:textSize="1dp"
             android:visibility="gone" />
 
     </LinearLayout>
