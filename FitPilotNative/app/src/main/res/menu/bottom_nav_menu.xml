@@ -5,9 +5,9 @@
         android:icon="@drawable/ic_fa_dashboard"
         android:title="Dashboard" />
     <item
-        android:id="@+id/nav_pose"
-        android:icon="@drawable/ic_fa_pose"
-        android:title="Pose AI" />
+        android:id="@+id/nav_nutrition"
+        android:icon="@drawable/ic_fa_nutrition"
+        android:title="Nutrition" />
     <item
         android:id="@+id/nav_workouts"
         android:icon="@drawable/ic_fa_workouts"

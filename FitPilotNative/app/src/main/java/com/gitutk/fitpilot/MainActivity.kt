@@ -31,10 +31,7 @@ class MainActivity : AppCompatActivity() {
         bottomNav.setOnNavigationItemSelectedListener { item ->
             val fragment: Fragment = when (item.itemId) {
                 R.id.nav_dashboard -> DashboardFragment()
-                R.id.nav_pose -> {
-                    // Start pose session with squat as default
-                    PoseFragment.newInstance("squat")
-                }
+                R.id.nav_nutrition -> NutritionFragment()
                 R.id.nav_workouts -> WorkoutLogFragment()
                 R.id.nav_food -> MealLoggerFragment()
                 else -> DashboardFragment()

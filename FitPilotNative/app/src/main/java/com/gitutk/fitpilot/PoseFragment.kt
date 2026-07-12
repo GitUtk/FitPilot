@@ -74,6 +74,9 @@ class PoseFragment : Fragment() {
     private var rightStage = "down"
     private var leftCounter = 0
     private var rightCounter = 0
+    private var pushupStage = "up"
+    private var lungeStage = "up"
+    private var pressStage = "down"
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -118,7 +121,14 @@ class PoseFragment : Fragment() {
         btnEndSession = view.findViewById(R.id.btnEndSession)
         btnRotateCamera = view.findViewById(R.id.btnRotateCamera)
 
-        tvExerciseName.text = if (exerciseMode == "squat") "Squats AI Session" else "Bicep Curls AI Session"
+        tvExerciseName.text = when (exerciseMode) {
+            "squat" -> "Squats AI Session"
+            "curl" -> "Curls AI Session"
+            "pushup" -> "Push-Ups AI Session"
+            "lunge" -> "Lunges AI Session"
+            "press" -> "Press AI Session"
+            else -> "${exerciseMode.uppercase()} AI Session"
+        }
 
         btnEndSession.setOnClickListener {
             endSessionAndSave()
@@ -247,99 +257,204 @@ class PoseFragment : Fragment() {
     private fun processPersonPose(person: Person) {
         if (person.score < 0.2f) return
 
-        if (exerciseMode == "squat") {
-            val hip = person.keyPoints.find { it.bodyPart == BodyPart.LEFT_HIP }
-            val knee = person.keyPoints.find { it.bodyPart == BodyPart.LEFT_KNEE }
-            val ankle = person.keyPoints.find { it.bodyPart == BodyPart.LEFT_ANKLE }
+        when (exerciseMode) {
+            "squat" -> {
+                val hip = person.keyPoints.find { it.bodyPart == BodyPart.LEFT_HIP }
+                val knee = person.keyPoints.find { it.bodyPart == BodyPart.LEFT_KNEE }
+                val ankle = person.keyPoints.find { it.bodyPart == BodyPart.LEFT_ANKLE }
 
-            if (hip != null && knee != null && ankle != null &&
-                hip.score > 0.2f && knee.score > 0.2f && ankle.score > 0.2f
-            ) {
-                val angle = calculateAngle(
-                    hip.coordinate.x, hip.coordinate.y,
-                    knee.coordinate.x, knee.coordinate.y,
-                    ankle.coordinate.x, ankle.coordinate.y
-                )
+                if (hip != null && knee != null && ankle != null &&
+                    hip.score > 0.2f && knee.score > 0.2f && ankle.score > 0.2f
+                ) {
+                    val angle = calculateAngle(
+                        hip.coordinate.x, hip.coordinate.y,
+                        knee.coordinate.x, knee.coordinate.y,
+                        ankle.coordinate.x, ankle.coordinate.y
+                    )
 
-                tvHudAngle.text = "${angle.toInt()}°"
+                    tvHudAngle.text = "${angle.toInt()}°"
 
-                if (angle > 155.0) {
-                    squatStage = "up"
-                    tvHudForm.text = "UP"
-                    tvHudFeedback.text = "Squat down until thighs are parallel!"
-                } else if (angle < 95.0 && squatStage == "up") {
-                    squatStage = "down"
-                    repsCount++
-                    tvHudReps.text = repsCount.toString()
-                    tvHudForm.text = "DOWN"
-                    tvHudFeedback.text = "Excellent depth! Now stand up."
-                } else if (angle < 95.0) {
-                    tvHudForm.text = "DOWN"
-                    tvHudFeedback.text = "Good job! Now push back up."
+                    if (angle > 155.0) {
+                        squatStage = "up"
+                        tvHudForm.text = "UP"
+                        tvHudFeedback.text = "Squat down until thighs are parallel!"
+                    } else if (angle < 95.0 && squatStage == "up") {
+                        squatStage = "down"
+                        repsCount++
+                        tvHudReps.text = repsCount.toString()
+                        tvHudForm.text = "DOWN"
+                        tvHudFeedback.text = "Excellent depth! Now stand up."
+                    } else if (angle < 95.0) {
+                        tvHudForm.text = "DOWN"
+                        tvHudFeedback.text = "Good job! Now push back up."
+                    }
                 }
             }
-        } else {
-            // Curls logic
-            val leftShoulder = person.keyPoints.find { it.bodyPart == BodyPart.LEFT_SHOULDER }
-            val leftElbow = person.keyPoints.find { it.bodyPart == BodyPart.LEFT_ELBOW }
-            val leftWrist = person.keyPoints.find { it.bodyPart == BodyPart.LEFT_WRIST }
+            "curl" -> {
+                val leftShoulder = person.keyPoints.find { it.bodyPart == BodyPart.LEFT_SHOULDER }
+                val leftElbow = person.keyPoints.find { it.bodyPart == BodyPart.LEFT_ELBOW }
+                val leftWrist = person.keyPoints.find { it.bodyPart == BodyPart.LEFT_WRIST }
 
-            val rightShoulder = person.keyPoints.find { it.bodyPart == BodyPart.RIGHT_SHOULDER }
-            val rightElbow = person.keyPoints.find { it.bodyPart == BodyPart.RIGHT_ELBOW }
-            val rightWrist = person.keyPoints.find { it.bodyPart == BodyPart.RIGHT_WRIST }
+                val rightShoulder = person.keyPoints.find { it.bodyPart == BodyPart.RIGHT_SHOULDER }
+                val rightElbow = person.keyPoints.find { it.bodyPart == BodyPart.RIGHT_ELBOW }
+                val rightWrist = person.keyPoints.find { it.bodyPart == BodyPart.RIGHT_WRIST }
 
-            var leftAngle = 0.0
-            var rightAngle = 0.0
+                var leftAngle = 0.0
+                var rightAngle = 0.0
 
-            if (leftShoulder != null && leftElbow != null && leftWrist != null &&
-                leftShoulder.score > 0.2f && leftElbow.score > 0.2f && leftWrist.score > 0.2f
-            ) {
-                leftAngle = calculateAngle(
-                    leftShoulder.coordinate.x, leftShoulder.coordinate.y,
-                    leftElbow.coordinate.x, leftElbow.coordinate.y,
-                    leftWrist.coordinate.x, leftWrist.coordinate.y
-                )
+                if (leftShoulder != null && leftElbow != null && leftWrist != null &&
+                    leftShoulder.score > 0.2f && leftElbow.score > 0.2f && leftWrist.score > 0.2f
+                ) {
+                    leftAngle = calculateAngle(
+                        leftShoulder.coordinate.x, leftShoulder.coordinate.y,
+                        leftElbow.coordinate.x, leftElbow.coordinate.y,
+                        leftWrist.coordinate.x, leftWrist.coordinate.y
+                    )
 
-                if (leftAngle > 150.0) {
-                    leftStage = "down"
-                } else if (leftAngle < 35.0 && leftStage == "down") {
-                    leftStage = "up"
-                    leftCounter++
+                    if (leftAngle > 150.0) {
+                        leftStage = "down"
+                    } else if (leftAngle < 35.0 && leftStage == "down") {
+                        leftStage = "up"
+                        leftCounter++
+                    }
+                }
+
+                if (rightShoulder != null && rightElbow != null && rightWrist != null &&
+                    rightShoulder.score > 0.2f && rightElbow.score > 0.2f && rightWrist.score > 0.2f
+                ) {
+                    rightAngle = calculateAngle(
+                        rightShoulder.coordinate.x, rightShoulder.coordinate.y,
+                        rightElbow.coordinate.x, rightElbow.coordinate.y,
+                        rightWrist.coordinate.x, rightWrist.coordinate.y
+                    )
+
+                    if (rightAngle > 150.0) {
+                        rightStage = "down"
+                    } else if (rightAngle < 35.0 && rightStage == "down") {
+                        rightStage = "up"
+                        rightCounter++
+                    }
+                }
+
+                repsCount = leftCounter + rightCounter
+                tvHudReps.text = repsCount.toString()
+
+                val activeAngle = if (leftAngle > 0) leftAngle else rightAngle
+                tvHudAngle.text = "${activeAngle.toInt()}°"
+                
+                tvHudForm.text = "CURL"
+                tvHudFeedback.text = "L: ${leftStage.uppercase()} | R: ${rightStage.uppercase()}"
+            }
+            "pushup" -> {
+                val shoulder = person.keyPoints.find { it.bodyPart == BodyPart.LEFT_SHOULDER }
+                val elbow = person.keyPoints.find { it.bodyPart == BodyPart.LEFT_ELBOW }
+                val wrist = person.keyPoints.find { it.bodyPart == BodyPart.LEFT_WRIST }
+
+                if (shoulder != null && elbow != null && wrist != null &&
+                    shoulder.score > 0.2f && elbow.score > 0.2f && wrist.score > 0.2f
+                ) {
+                    val angle = calculateAngle(
+                        shoulder.coordinate.x, shoulder.coordinate.y,
+                        elbow.coordinate.x, elbow.coordinate.y,
+                        wrist.coordinate.x, wrist.coordinate.y
+                    )
+
+                    tvHudAngle.text = "${angle.toInt()}°"
+
+                    if (angle > 150.0) {
+                        pushupStage = "up"
+                        tvHudForm.text = "UP"
+                        tvHudFeedback.text = "Lower your chest to the floor!"
+                    } else if (angle < 95.0 && pushupStage == "up") {
+                        pushupStage = "down"
+                        repsCount++
+                        tvHudReps.text = repsCount.toString()
+                        tvHudForm.text = "DOWN"
+                        tvHudFeedback.text = "Perfect depth! Push back up."
+                    } else if (angle < 95.0) {
+                        tvHudForm.text = "DOWN"
+                        tvHudFeedback.text = "Good push-up form! Push back up."
+                    }
                 }
             }
+            "lunge" -> {
+                val hip = person.keyPoints.find { it.bodyPart == BodyPart.LEFT_HIP }
+                val knee = person.keyPoints.find { it.bodyPart == BodyPart.LEFT_KNEE }
+                val ankle = person.keyPoints.find { it.bodyPart == BodyPart.LEFT_ANKLE }
 
-            if (rightShoulder != null && rightElbow != null && rightWrist != null &&
-                rightShoulder.score > 0.2f && rightElbow.score > 0.2f && rightWrist.score > 0.2f
-            ) {
-                rightAngle = calculateAngle(
-                    rightShoulder.coordinate.x, rightShoulder.coordinate.y,
-                    rightElbow.coordinate.x, rightElbow.coordinate.y,
-                    rightWrist.coordinate.x, rightWrist.coordinate.y
-                )
+                if (hip != null && knee != null && ankle != null &&
+                    hip.score > 0.2f && knee.score > 0.2f && ankle.score > 0.2f
+                ) {
+                    val angle = calculateAngle(
+                        hip.coordinate.x, hip.coordinate.y,
+                        knee.coordinate.x, knee.coordinate.y,
+                        ankle.coordinate.x, ankle.coordinate.y
+                    )
 
-                if (rightAngle > 150.0) {
-                    rightStage = "down"
-                } else if (rightAngle < 35.0 && rightStage == "down") {
-                    rightStage = "up"
-                    rightCounter++
+                    tvHudAngle.text = "${angle.toInt()}°"
+
+                    if (angle > 155.0) {
+                        lungeStage = "up"
+                        tvHudForm.text = "UP"
+                        tvHudFeedback.text = "Step forward and lower your hips!"
+                    } else if (angle < 100.0 && lungeStage == "up") {
+                        lungeStage = "down"
+                        repsCount++
+                        tvHudReps.text = repsCount.toString()
+                        tvHudForm.text = "DOWN"
+                        tvHudFeedback.text = "Great depth! Push back to start position."
+                    } else if (angle < 100.0) {
+                        tvHudForm.text = "DOWN"
+                        tvHudFeedback.text = "Excellent lunge posture!"
+                    }
                 }
             }
+            "press" -> {
+                val shoulder = person.keyPoints.find { it.bodyPart == BodyPart.LEFT_SHOULDER }
+                val elbow = person.keyPoints.find { it.bodyPart == BodyPart.LEFT_ELBOW }
+                val wrist = person.keyPoints.find { it.bodyPart == BodyPart.LEFT_WRIST }
 
-            repsCount = leftCounter + rightCounter
-            tvHudReps.text = repsCount.toString()
+                if (shoulder != null && elbow != null && wrist != null &&
+                    shoulder.score > 0.2f && elbow.score > 0.2f && wrist.score > 0.2f
+                ) {
+                    val angle = calculateAngle(
+                        shoulder.coordinate.x, shoulder.coordinate.y,
+                        elbow.coordinate.x, elbow.coordinate.y,
+                        wrist.coordinate.x, wrist.coordinate.y
+                    )
 
-            val activeAngle = if (leftAngle > 0) leftAngle else rightAngle
-            tvHudAngle.text = "${activeAngle.toInt()}°"
-            
-            tvHudForm.text = "CURL"
-            tvHudFeedback.text = "L: ${leftStage.uppercase()} | R: ${rightStage.uppercase()}"
+                    tvHudAngle.text = "${angle.toInt()}°"
+
+                    if (angle < 95.0) {
+                        pressStage = "down"
+                        tvHudForm.text = "DOWN"
+                        tvHudFeedback.text = "Drive the weight overhead!"
+                    } else if (angle > 160.0 && pressStage == "down") {
+                        pressStage = "up"
+                        repsCount++
+                        tvHudReps.text = repsCount.toString()
+                        tvHudForm.text = "UP"
+                        tvHudFeedback.text = "Locked out! Now lower slowly."
+                    } else if (angle > 160.0) {
+                        tvHudForm.text = "UP"
+                        tvHudFeedback.text = "Good lock out! Return to chest."
+                    }
+                }
+            }
         }
     }
 
     private fun endSessionAndSave() {
         if (repsCount > 0) {
             Toast.makeText(context, "Saving session: $repsCount reps...", Toast.LENGTH_SHORT).show()
-            val defaultWeight = if (exerciseMode == "squat") 40.0 else 15.0
+            val defaultWeight = when (exerciseMode) {
+                "squat" -> 40.0
+                "curl" -> 15.0
+                "pushup" -> 0.0
+                "lunge" -> 20.0
+                "press" -> 30.0
+                else -> 10.0
+            }
 
             btnEndSession.isEnabled = false
             apiService.logWorkout(exerciseMode, sets = 1, reps = repsCount, weight = defaultWeight) { success, data, error ->

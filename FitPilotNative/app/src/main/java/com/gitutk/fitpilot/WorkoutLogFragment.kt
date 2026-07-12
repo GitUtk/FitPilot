@@ -23,9 +23,9 @@ class WorkoutLogFragment : Fragment() {
     private val exercises = listOf(
         ExerciseViewItem("squat", R.id.rlSquatHeader, R.id.llSquatDropdown, R.id.ivSquatChevron, R.id.etSquatSets, R.id.etSquatReps, R.id.etSquatWeight, R.id.btnSquatLog, R.id.btnSquatAI, "Squats"),
         ExerciseViewItem("curl", R.id.rlCurlHeader, R.id.llCurlDropdown, R.id.ivCurlChevron, R.id.etCurlSets, R.id.etCurlReps, R.id.etCurlWeight, R.id.btnCurlLog, R.id.btnCurlAI, "Bicep Curls"),
-        ExerciseViewItem("pushup", R.id.rlPushupHeader, R.id.llPushupDropdown, R.id.ivPushupChevron, R.id.etPushupSets, R.id.etPushupReps, R.id.etPushupWeight, R.id.btnPushupLog, null, "Push-Ups"),
-        ExerciseViewItem("lunge", R.id.rlLungeHeader, R.id.llLungeDropdown, R.id.ivLungeChevron, R.id.etLungeSets, R.id.etLungeReps, R.id.etLungeWeight, R.id.btnLungeLog, null, "Lunges"),
-        ExerciseViewItem("press", R.id.rlPressHeader, R.id.llPressDropdown, R.id.ivPressChevron, R.id.etPressSets, R.id.etPressReps, R.id.etPressWeight, R.id.btnPressLog, null, "Overhead Press")
+        ExerciseViewItem("pushup", R.id.rlPushupHeader, R.id.llPushupDropdown, R.id.ivPushupChevron, R.id.etPushupSets, R.id.etPushupReps, R.id.etPushupWeight, R.id.btnPushupLog, R.id.btnPushupAI, "Push-Ups"),
+        ExerciseViewItem("lunge", R.id.rlLungeHeader, R.id.llLungeDropdown, R.id.ivLungeChevron, R.id.etLungeSets, R.id.etLungeReps, R.id.etLungeWeight, R.id.btnLungeLog, R.id.btnLungeAI, "Lunges"),
+        ExerciseViewItem("press", R.id.rlPressHeader, R.id.llPressDropdown, R.id.ivPressChevron, R.id.etPressSets, R.id.etPressReps, R.id.etPressWeight, R.id.btnPressLog, R.id.btnPressAI, "Overhead Press")
     )
 
     data class ExerciseViewItem(
