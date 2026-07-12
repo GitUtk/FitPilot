@@ -32,15 +32,28 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
+            android:layout_gravity="center_vertical"
             android:text="Squats AI Session"
             android:textColor="@color/white"
             android:textSize="18sp"
             android:textStyle="bold" />
 
+        <ImageButton
+            android:id="@+id/btnRotateCamera"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginEnd="12dp"
+            android:layout_gravity="center_vertical"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_menu_rotate"
+            app:tint="@color/white"
+            android:contentDescription="Rotate Camera" />
+
         <Button
             android:id="@+id/btnEndSession"
             android:layout_width="wrap_content"
             android:layout_height="36dp"
+            android:layout_gravity="center_vertical"
             android:text="Stop Scan"
             android:textColor="@color/white"
             android:backgroundTint="@color/error"

@@ -10,6 +10,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -54,8 +55,10 @@ class PoseFragment : Fragment() {
     private lateinit var tvHudForm: TextView
     private lateinit var tvHudFeedback: TextView
     private lateinit var btnEndSession: Button
+    private lateinit var btnRotateCamera: ImageButton
 
     private var exerciseMode = "squat" // default
+    private var isFrontCamera = true
     private var cameraProvider: ProcessCameraProvider? = null
     private var cameraExecutor: ExecutorService? = null
 
@@ -113,11 +116,17 @@ class PoseFragment : Fragment() {
         tvHudForm = view.findViewById(R.id.tvHudForm)
         tvHudFeedback = view.findViewById(R.id.tvHudFeedback)
         btnEndSession = view.findViewById(R.id.btnEndSession)
+        btnRotateCamera = view.findViewById(R.id.btnRotateCamera)
 
         tvExerciseName.text = if (exerciseMode == "squat") "Squats AI Session" else "Bicep Curls AI Session"
 
         btnEndSession.setOnClickListener {
             endSessionAndSave()
+        }
+
+        btnRotateCamera.setOnClickListener {
+            isFrontCamera = !isFrontCamera
+            bindCameraUseCases()
         }
 
         checkPermissionAndStart()
@@ -151,9 +160,9 @@ class PoseFragment : Fragment() {
         val provider = cameraProvider ?: return
         provider.unbindAll()
 
-        // Use front camera for mirrors selfie workout experience
+        // Choose between front and back camera lens
         val cameraSelector = CameraSelector.Builder()
-            .requireLensFacing(CameraSelector.LENS_FACING_FRONT)
+            .requireLensFacing(if (isFrontCamera) CameraSelector.LENS_FACING_FRONT else CameraSelector.LENS_FACING_BACK)
             .build()
 
         val preview = Preview.Builder().build()
@@ -177,10 +186,12 @@ class PoseFragment : Fragment() {
                 // Convert YUV to RGB bitmap
                 yuvConverter.yuvToRgb(mediaImage, imageBitmap)
 
-                // Rotate and horizontally mirror because it is the front camera
+                // Rotate, and horizontally mirror only if it is the front camera
                 val matrix = Matrix().apply {
                     postRotate(imageProxy.imageInfo.rotationDegrees.toFloat())
-                    postScale(-1f, 1f)
+                    if (isFrontCamera) {
+                        postScale(-1f, 1f)
+                    }
                 }
 
                 val rotatedBitmap = Bitmap.createBitmap(
