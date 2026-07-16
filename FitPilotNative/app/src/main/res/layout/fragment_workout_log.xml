@@ -302,45 +302,52 @@
                     </LinearLayout>
                 </LinearLayout>
 
-                <!-- Actions Row -->
+                <!-- Actions Row: Start Exercise on Left, Log Set on Right -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal">
-
-                    <Button
-                        android:id="@+id/btnLogSet"
-                        android:layout_width="0dp"
-                        android:layout_height="46dp"
-                        android:layout_weight="1"
-                        android:text="Log Set"
-                        android:textColor="@color/white"
-                        android:backgroundTint="@color/primary"
-                        app:cornerRadius="6dp" />
+                    android:orientation="horizontal"
+                    android:weightSum="2">
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnStartAI"
-                        style="@style/Widget.MaterialComponents.Button.OutlinedButton.Icon"
-                        android:layout_width="46dp"
-                        android:layout_height="46dp"
-                        android:layout_marginStart="12dp"
-                        android:padding="0dp"
-                        app:strokeColor="@color/border"
-                        app:cornerRadius="6dp"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="6dp"
+                        android:text="Start Exercise"
+                        android:textColor="@color/white"
+                        android:backgroundTint="@color/primary"
                         app:icon="@drawable/ic_fa_pose"
-                        app:iconPadding="0dp"
+                        app:iconTint="@color/white"
+                        app:iconGravity="textStart"
+                        app:cornerRadius="8dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnLogSet"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:layout_marginStart="6dp"
+                        android:text="Log Set"
+                        android:textColor="@color/primary"
+                        app:strokeColor="@color/primary"
+                        app:strokeWidth="1.5dp"
+                        app:icon="@drawable/ic_plus"
                         app:iconTint="@color/primary"
-                        app:iconGravity="textStart" />
+                        app:iconGravity="textStart"
+                        app:cornerRadius="8dp" />
                 </LinearLayout>
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Redesigned Detailed Infographics Section -->
+        <!-- Today's Performance Header -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Training Performance &amp; Insights"
+            android:text="Today's Performance"
             android:textColor="@color/text_primary"
             android:textSize="15sp"
             android:textStyle="bold"
@@ -398,7 +405,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Excellent pacing &amp; alignment tracked."
+                            android:text="Excellent alignment tracked."
                             android:textColor="@color/text_secondary"
                             android:textSize="10sp"
                             android:layout_marginTop="4dp" />
@@ -454,7 +461,7 @@
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="Legs (Squats/Lunges)"
+                                    android:text="Legs (Squats)"
                                     android:textColor="@color/text_primary"
                                     android:textSize="9sp" />
                                 <TextView
@@ -510,7 +517,7 @@
                                 android:layout_height="4dp"
                                 android:layout_marginTop="2dp"
                                 android:progress="25"
-                                android:progressTint="@color/primary"
+                                android:progressTint="@color/accent"
                                 android:progressBackgroundTint="@color/border" />
                         </LinearLayout>
 
@@ -518,8 +525,7 @@
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:layout_marginBottom="6dp">
+                            android:orientation="vertical">
                             <RelativeLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content">
@@ -546,7 +552,7 @@
                                 android:layout_height="4dp"
                                 android:layout_marginTop="2dp"
                                 android:progress="20"
-                                android:progressTint="@color/success"
+                                android:progressTint="@color/accent"
                                 android:progressBackgroundTint="@color/border" />
                         </LinearLayout>
 
@@ -766,166 +772,6 @@
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
-
-            <!-- 4 Metrics Stats Grid -->
-            <GridLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:columnCount="2"
-                android:rowCount="2"
-                android:layout_marginBottom="10dp">
-
-                <!-- Total Volume Card -->
-                <com.google.android.material.card.MaterialCardView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_columnWeight="1"
-                    android:layout_rowWeight="1"
-                    android:layout_marginEnd="6dp"
-                    android:layout_marginBottom="12dp"
-                    app:cardCornerRadius="10dp"
-                    app:cardElevation="0dp"
-                    app:strokeColor="@color/border"
-                    app:strokeWidth="1dp"
-                    app:cardBackgroundColor="@color/card_background">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:padding="14dp">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Total Volume"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="10sp"
-                            android:textStyle="bold" />
-                        <TextView
-                            android:id="@+id/tvTotalVolume"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="2,840 kg"
-                            android:textColor="@color/text_primary"
-                            android:textSize="18sp"
-                            android:textStyle="bold"
-                            android:layout_marginTop="4dp" />
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-
-                <!-- Total Sets Card -->
-                <com.google.android.material.card.MaterialCardView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_columnWeight="1"
-                    android:layout_rowWeight="1"
-                    android:layout_marginStart="6dp"
-                    android:layout_marginBottom="12dp"
-                    app:cardCornerRadius="10dp"
-                    app:cardElevation="0dp"
-                    app:strokeColor="@color/border"
-                    app:strokeWidth="1dp"
-                    app:cardBackgroundColor="@color/card_background">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:padding="14dp">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Total Sets Logged"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="10sp"
-                            android:textStyle="bold" />
-                        <TextView
-                            android:id="@+id/tvTotalSets"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="36 Sets"
-                            android:textColor="@color/text_primary"
-                            android:textSize="18sp"
-                            android:textStyle="bold"
-                            android:layout_marginTop="4dp" />
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-
-                <!-- Completed Reps Card -->
-                <com.google.android.material.card.MaterialCardView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_columnWeight="1"
-                    android:layout_rowWeight="1"
-                    android:layout_marginEnd="6dp"
-                    app:cardCornerRadius="10dp"
-                    app:cardElevation="0dp"
-                    app:strokeColor="@color/border"
-                    app:strokeWidth="1dp"
-                    app:cardBackgroundColor="@color/card_background">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:padding="14dp">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Total Reps"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="10sp"
-                            android:textStyle="bold" />
-                        <TextView
-                            android:id="@+id/tvTotalReps"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="384 Reps"
-                            android:textColor="@color/text_primary"
-                            android:textSize="18sp"
-                            android:textStyle="bold"
-                            android:layout_marginTop="4dp" />
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-
-                <!-- Completion Score Card -->
-                <com.google.android.material.card.MaterialCardView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_columnWeight="1"
-                    android:layout_rowWeight="1"
-                    android:layout_marginStart="6dp"
-                    app:cardCornerRadius="10dp"
-                    app:cardElevation="0dp"
-                    app:strokeColor="@color/border"
-                    app:strokeWidth="1dp"
-                    app:cardBackgroundColor="@color/card_background">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:padding="14dp">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Active Workouts"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="10sp"
-                            android:textStyle="bold" />
-                        <TextView
-                            android:id="@+id/tvCompletionScore"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="14 Sessions"
-                            android:textColor="@color/text_primary"
-                            android:textSize="18sp"
-                            android:textStyle="bold"
-                            android:layout_marginTop="4dp" />
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-            </GridLayout>
-
         </LinearLayout>
 
         <!-- Hidden Loading/Empty Indicators kept for API updates -->

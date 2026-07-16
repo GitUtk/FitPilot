@@ -28,6 +28,11 @@ class MealLoggerFragment : Fragment() {
     private lateinit var btnClearChat: ImageButton
     private lateinit var svChat: ScrollView
 
+    // Thinking bubble variables
+    private var thinkingBubbleView: View? = null
+    private var thinkingRunnable: Runnable? = null
+    private val thinkingHandler = android.os.Handler(android.os.Looper.getMainLooper())
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -51,6 +56,94 @@ class MealLoggerFragment : Fragment() {
         return view
     }
 
+    override fun onDestroyView() {
+        super.onDestroyView()
+        thinkingRunnable?.let {
+            thinkingHandler.removeCallbacks(it)
+        }
+    }
+
+    private fun showThinkingBubble() {
+        val context = context ?: return
+        val density = context.resources.displayMetrics.density
+        
+        val marginTopBottom = (8 * density).toInt()
+        val marginOpposite = (64 * density).toInt()
+        val marginSide = (8 * density).toInt()
+        val cardRadius = 18 * density
+        val strokePx = (1.5f * density).toInt()
+        val padHorizontal = (16 * density).toInt()
+        val padVertical = (12 * density).toInt()
+
+        val bubble = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                topMargin = marginTopBottom
+                bottomMargin = marginTopBottom
+            }
+            gravity = Gravity.START
+        }
+
+        val card = MaterialCardView(context).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                leftMargin = marginSide
+                rightMargin = marginOpposite
+            }
+            cardElevation = 0f
+            radius = cardRadius
+            setContentPadding(padHorizontal, padVertical, padHorizontal, padVertical)
+            setCardBackgroundColor(ContextCompat.getColorStateList(context, R.color.card_background))
+            setStrokeColor(ContextCompat.getColorStateList(context, R.color.border))
+            strokeWidth = strokePx
+        }
+
+        val tv = TextView(context).apply {
+            text = "Thinking"
+            setTextColor(ContextCompat.getColor(context, R.color.text_secondary))
+            setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 14f)
+            setTypeface(null, Typeface.ITALIC)
+        }
+
+        card.addView(tv)
+        bubble.addView(card)
+        llChatMessages.addView(bubble)
+        thinkingBubbleView = bubble
+        
+        // Animate dots
+        var dotCount = 0
+        thinkingRunnable = object : Runnable {
+            override fun run() {
+                dotCount = (dotCount + 1) % 4
+                val dots = when (dotCount) {
+                    1 -> "."
+                    2 -> ".."
+                    3 -> "..."
+                    else -> ""
+                }
+                tv.text = "Thinking$dots"
+                thinkingHandler.postDelayed(this, 500)
+            }
+        }
+        thinkingHandler.post(thinkingRunnable!!)
+    }
+
+    private fun removeThinkingBubble() {
+        thinkingRunnable?.let {
+            thinkingHandler.removeCallbacks(it)
+        }
+        thinkingRunnable = null
+        thinkingBubbleView?.let {
+            llChatMessages.removeView(it)
+        }
+        thinkingBubbleView = null
+    }
+
     private fun setupChat() {
         btnSendChat.setOnClickListener {
             val text = etChatInput.text.toString().trim()
@@ -61,9 +154,13 @@ class MealLoggerFragment : Fragment() {
             scrollToBottom()
 
             btnSendChat.isEnabled = false
+            showThinkingBubble()
+            scrollToBottom()
+
             apiService.chatMeal(text) { success, data, error ->
                 activity?.runOnUiThread {
                     btnSendChat.isEnabled = true
+                    removeThinkingBubble()
                     if (success && data != null) {
                         val reply = data.optString("text", "I've processed your request.")
                         addMessageBubble(reply, false)

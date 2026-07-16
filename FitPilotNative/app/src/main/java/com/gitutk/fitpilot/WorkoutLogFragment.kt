@@ -60,11 +60,7 @@ class WorkoutLogFragment : Fragment() {
     private lateinit var pbSat: ProgressBar
     private lateinit var pbSun: ProgressBar
 
-    // 4 Metrics Grid
-    private lateinit var tvTotalVolume: TextView
-    private lateinit var tvTotalSets: TextView
-    private lateinit var tvTotalReps: TextView
-    private lateinit var tvCompletionScore: TextView
+
 
     private lateinit var pbHistory: ProgressBar
 
@@ -116,11 +112,7 @@ class WorkoutLogFragment : Fragment() {
         pbArmsFocus = view.findViewById(R.id.pbArmsFocus)
         pbChestFocus = view.findViewById(R.id.pbChestFocus)
         
-        // Metrics Grid Bindings
-        tvTotalVolume = view.findViewById(R.id.tvTotalVolume)
-        tvTotalSets = view.findViewById(R.id.tvTotalSets)
-        tvTotalReps = view.findViewById(R.id.tvTotalReps)
-        tvCompletionScore = view.findViewById(R.id.tvCompletionScore)
+
 
         pbHistory = view.findViewById(R.id.pbHistory)
 
@@ -350,11 +342,7 @@ class WorkoutLogFragment : Fragment() {
             }
         }
 
-        // 1. Update Core Grid text boxes
-        tvTotalVolume.text = String.format(Locale.getDefault(), "%,.0f kg", totalVolume)
-        tvTotalSets.text = "$totalSets Sets"
-        tvTotalReps.text = String.format(Locale.getDefault(), "%,d Reps", totalReps)
-        tvCompletionScore.text = "$totalSessions Sessions"
+
 
         // 2. Update Muscle Focus Percentages
         val totalMuscleSets = legsSets + armsSets + chestSets
