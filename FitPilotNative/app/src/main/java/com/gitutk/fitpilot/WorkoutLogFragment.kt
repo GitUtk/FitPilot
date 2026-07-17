@@ -40,7 +40,6 @@ class WorkoutLogFragment : Fragment() {
     private lateinit var btnStartAI: Button
 
     // Infographics bindings
-    private lateinit var tvFormPercentage: TextView
     private lateinit var tvFocusLegs: TextView
     private lateinit var tvFocusArms: TextView
     private lateinit var tvFocusChest: TextView
@@ -48,6 +47,9 @@ class WorkoutLogFragment : Fragment() {
     private lateinit var pbLegsFocus: ProgressBar
     private lateinit var pbArmsFocus: ProgressBar
     private lateinit var pbChestFocus: ProgressBar
+
+    // Today's Exercise List
+    private lateinit var llTodayExercisesContainer: LinearLayout
 
     // Today's Workout Stats
     private lateinit var tvTodayCalories: TextView
@@ -87,10 +89,11 @@ class WorkoutLogFragment : Fragment() {
         btnLogSet = view.findViewById(R.id.btnLogSet)
         btnStartAI = view.findViewById(R.id.btnStartAI)
 
-        tvFormPercentage = view.findViewById(R.id.tvFormPercentage)
         tvFocusLegs = view.findViewById(R.id.tvFocusLegs)
         tvFocusArms = view.findViewById(R.id.tvFocusArms)
         tvFocusChest = view.findViewById(R.id.tvFocusChest)
+
+        llTodayExercisesContainer = view.findViewById(R.id.llTodayExercisesContainer)
 
         // Dynamically find muscle progress bars in visual hierarchy
         pbLegsFocus = view.findViewById(R.id.pbLegsFocus)
@@ -260,13 +263,29 @@ class WorkoutLogFragment : Fragment() {
             activity?.runOnUiThread {
                 pbHistory.visibility = View.GONE
 
+                // Clear and recreate today's exercises container header
+                llTodayExercisesContainer.removeAllViews()
+                val headerTv = TextView(context).apply {
+                    text = "Logged Exercises Today"
+                    setTextColor(ContextCompat.getColor(context, R.color.text_secondary))
+                    textSize = 11f
+                    setTypeface(null, android.graphics.Typeface.BOLD)
+                    val params = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply {
+                        bottomMargin = (12 * resources.displayMetrics.density).toInt()
+                    }
+                    layoutParams = params
+                }
+                llTodayExercisesContainer.addView(headerTv)
+
                 if (success && data != null) {
                     val calories = data.optDouble("total_calories", 0.0)
                     val duration = data.optInt("total_duration", 0)
                     val sets = data.optInt("total_sets", 0)
                     val reps = data.optInt("total_reps", 0)
                     val intensity = data.optDouble("average_intensity", 0.0)
-                    val totalWorkouts = data.optInt("total_workouts", 0)
 
                     // Today's Workout card
                     tvTodayCalories.text = "${calories.toInt()} kcal"
@@ -280,17 +299,71 @@ class WorkoutLogFragment : Fragment() {
                     var armsSets = 0
                     var chestSets = 0
 
-                    if (breakdown != null) {
+                    if (breakdown != null && breakdown.length() > 0) {
                         val keys = breakdown.keys()
                         while (keys.hasNext()) {
                             val ex = keys.next()
-                            val exSets = breakdown.optInt(ex, 0)
-                            when (ex) {
-                                "squat", "lunge" -> legsSets += exSets
-                                "curl", "press" -> armsSets += exSets
-                                "pushup" -> chestSets += exSets
+                            val item = breakdown.optJSONObject(ex)
+                            if (item != null) {
+                                val exSets = item.optInt("sets", 0)
+                                val exReps = item.optInt("reps", 0)
+                                when (ex) {
+                                    "squat", "lunge" -> legsSets += exSets
+                                    "curl", "press" -> armsSets += exSets
+                                    "pushup" -> chestSets += exSets
+                                }
+
+                                // Create dynamic row layout for each exercise
+                                val rowLayout = LinearLayout(context).apply {
+                                    orientation = LinearLayout.HORIZONTAL
+                                    layoutParams = LinearLayout.LayoutParams(
+                                        LinearLayout.LayoutParams.MATCH_PARENT,
+                                        LinearLayout.LayoutParams.WRAP_CONTENT
+                                    ).apply {
+                                        bottomMargin = (8 * resources.displayMetrics.density).toInt()
+                                    }
+                                }
+
+                                val displayName = when (ex.lowercase(Locale.getDefault())) {
+                                    "squat" -> "Squats"
+                                    "curl" -> "Bicep Curls"
+                                    "pushup" -> "Push-Ups"
+                                    "lunge" -> "Lunges"
+                                    "press" -> "Overhead Press"
+                                    else -> ex.replaceFirstChar { it.uppercase() }
+                                }
+
+                                val tvName = TextView(context).apply {
+                                    text = displayName
+                                    setTextColor(ContextCompat.getColor(context, R.color.text_primary))
+                                    textSize = 13f
+                                    layoutParams = LinearLayout.LayoutParams(
+                                        0,
+                                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                                        1f
+                                    )
+                                }
+
+                                val tvDetail = TextView(context).apply {
+                                    text = "$exSets Sets / $exReps Reps"
+                                    setTextColor(ContextCompat.getColor(context, R.color.text_secondary))
+                                    textSize = 13f
+                                    setTypeface(null, android.graphics.Typeface.BOLD)
+                                }
+
+                                rowLayout.addView(tvName)
+                                rowLayout.addView(tvDetail)
+                                llTodayExercisesContainer.addView(rowLayout)
                             }
                         }
+                    } else {
+                        val tvEmpty = TextView(context).apply {
+                            text = "No exercises logged today"
+                            setTextColor(ContextCompat.getColor(context, R.color.text_secondary))
+                            textSize = 13f
+                            setTypeface(null, android.graphics.Typeface.ITALIC)
+                        }
+                        llTodayExercisesContainer.addView(tvEmpty)
                     }
 
                     val totalMuscleSets = legsSets + armsSets + chestSets
@@ -315,22 +388,6 @@ class WorkoutLogFragment : Fragment() {
                         pbArmsFocus.progress = 0
                         pbChestFocus.progress = 0
                     }
-
-                    // Form Quality — based on actual sessions today
-                    if (totalWorkouts > 0) {
-                        // Derive a quality score from intensity consistency
-                        val avgIntPerSession = if (totalWorkouts > 0) intensity else 0.0
-                        val quality = when {
-                            avgIntPerSession >= 50 -> 95
-                            avgIntPerSession >= 30 -> 88
-                            avgIntPerSession >= 15 -> 78
-                            avgIntPerSession > 0 -> 65
-                            else -> 0
-                        }
-                        tvFormPercentage.text = "$quality%"
-                    } else {
-                        tvFormPercentage.text = "--"
-                    }
                 } else {
                     // No data / error — reset everything
                     tvTodayCalories.text = "0 kcal"
@@ -345,7 +402,13 @@ class WorkoutLogFragment : Fragment() {
                     pbArmsFocus.progress = 0
                     pbChestFocus.progress = 0
 
-                    tvFormPercentage.text = "--"
+                    val tvEmpty = TextView(context).apply {
+                        text = "No exercises logged today"
+                        setTextColor(ContextCompat.getColor(context, R.color.text_secondary))
+                        textSize = 13f
+                        setTypeface(null, android.graphics.Typeface.ITALIC)
+                    }
+                    llTodayExercisesContainer.addView(tvEmpty)
                 }
             }
         }

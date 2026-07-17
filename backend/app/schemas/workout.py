@@ -28,4 +28,4 @@ class WorkoutStats(BaseModel):
     total_reps: int
     total_duration: int = 0
     average_intensity: float
-    exercise_breakdown: Optional[Dict[str, int]] = None
+    exercise_breakdown: Optional[Dict[str, Dict[str, int]]] = None

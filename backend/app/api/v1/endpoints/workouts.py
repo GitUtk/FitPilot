@@ -33,10 +33,16 @@ async def create_workout(workout_in: WorkoutCreate, current_user = Depends(deps.
         met = 5.0
     elif workout_in.exercise.lower() == "curl":
         met = 3.5
+    elif workout_in.exercise.lower() == "pushup":
+        met = 4.0
+
+    actual_weight = workout_in.weight
+    if workout_in.exercise.lower() == "pushup":
+        actual_weight = weight
 
     duration = workout_in.sets * 2
     calories = met * weight * (duration / 60.0)
-    volume = workout_in.sets * workout_in.reps * workout_in.weight
+    volume = workout_in.sets * workout_in.reps * actual_weight
     intensity = (volume / weight) * met
 
     workout_dict = {
@@ -44,7 +50,7 @@ async def create_workout(workout_in: WorkoutCreate, current_user = Depends(deps.
         "exercise": workout_in.exercise,
         "sets": workout_in.sets,
         "reps": workout_in.reps,
-        "weight": workout_in.weight,
+        "weight": actual_weight,
         "duration_minutes": duration,
         "calories_burned": round(calories, 2),
         "intensity_score": round(intensity, 2),
@@ -85,11 +91,14 @@ async def get_workout_stats(current_user = Depends(deps.get_current_user), db = 
     total_intensity = sum(w.get("intensity_score", 0.0) for w in workouts)
     average_intensity = round(total_intensity / total_workouts, 2) if total_workouts > 0 else 0.0
 
-    # Per-exercise sets breakdown for muscle focus
+    # Per-exercise sets & reps breakdown for muscle focus and today's list
     exercise_breakdown = {}
     for w in workouts:
         ex = w.get("exercise", "unknown")
-        exercise_breakdown[ex] = exercise_breakdown.get(ex, 0) + w.get("sets", 0)
+        if ex not in exercise_breakdown:
+            exercise_breakdown[ex] = {"sets": 0, "reps": 0}
+        exercise_breakdown[ex]["sets"] += w.get("sets", 0)
+        exercise_breakdown[ex]["reps"] += w.get("reps", 0)
 
     return {
         "total_workouts": total_workouts,

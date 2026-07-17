@@ -185,6 +185,7 @@ class MealLoggerFragment : Fragment() {
                     btnClearChat.isEnabled = true
                     if (success) {
                         llChatMessages.removeAllViews()
+                        showWelcomeMessage()
                         Toast.makeText(context, "Chat history cleared", Toast.LENGTH_SHORT).show()
                     } else {
                         Toast.makeText(context, error ?: "Failed to clear chat", Toast.LENGTH_SHORT).show()
@@ -194,19 +195,44 @@ class MealLoggerFragment : Fragment() {
         }
     }
 
+    private fun showWelcomeMessage() {
+        val name = apiService.userName ?: "Pilot"
+        val weight = apiService.userWeight
+        val height = apiService.userHeight
+        val gender = apiService.userGender ?: "Not specified"
+
+        val heightM = height / 100.0
+        val bmi = if (heightM > 0) weight / (heightM * heightM) else 0.0
+        val bmiStr = if (bmi > 0) String.format(java.util.Locale.getDefault(), "%.1f", bmi) else "--"
+
+        val welcomeText = "Hi $name! I'm your AI Coach. 🏋️‍♂️🥗\n\n" +
+                "You can chat with me to get exercise tips, or to **automatically log meals**. For example, try saying:\n" +
+                "* *\"I had a bowl of oats and 2 boiled eggs\"*\n" +
+                "* *\"Suggest a quick leg workout\"*\n\n" +
+                "Here are your current profile stats:\n" +
+                "* **Gender**: $gender\n" +
+                "* **Weight**: ${weight} kg\n" +
+                "* **Height**: ${height} cm\n" +
+                "* **BMI**: $bmiStr"
+
+        addMessageBubble(welcomeText, false)
+    }
+
     private fun fetchChatHistory() {
         llChatMessages.removeAllViews()
         apiService.getChatHistory { success, array, error ->
-            if (success && array != null) {
-                activity?.runOnUiThread {
+            activity?.runOnUiThread {
+                if (success && array != null && array.length() > 0) {
                     for (i in 0 until array.length()) {
                         val msg = array.getJSONObject(i)
                         val role = msg.optString("role", "")
                         val text = msg.optString("text", "")
                         addMessageBubble(text, role == "user")
                     }
-                    scrollToBottom()
+                } else {
+                    showWelcomeMessage()
                 }
+                scrollToBottom()
             }
         }
     }
