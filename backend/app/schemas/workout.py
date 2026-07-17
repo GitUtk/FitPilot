@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Dict, Optional
 from pydantic import BaseModel, ConfigDict
 
 class WorkoutBase(BaseModel):
@@ -27,3 +28,4 @@ class WorkoutStats(BaseModel):
     total_reps: int
     total_duration: int = 0
     average_intensity: float
+    exercise_breakdown: Optional[Dict[str, int]] = None

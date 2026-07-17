@@ -111,9 +111,6 @@ class WorkoutLogFragment : Fragment() {
         // Default selection
         selectExercise("squat")
 
-        // Load dynamic infographics from recent history
-        fetchHistoryAndCalculateStats()
-
         // Load today's workout stats from API
         fetchTodayStats()
 
@@ -243,7 +240,6 @@ class WorkoutLogFragment : Fragment() {
                 if (success) {
                     val displayName = selectedExerciseKey.replaceFirstChar { it.uppercase() }
                     Toast.makeText(context, "$displayName set logged!", Toast.LENGTH_SHORT).show()
-                    fetchHistoryAndCalculateStats()
                     fetchTodayStats()
                 } else {
                     Toast.makeText(context, error ?: "Failed to log set", Toast.LENGTH_LONG).show()
@@ -258,99 +254,100 @@ class WorkoutLogFragment : Fragment() {
     }
 
     private fun fetchTodayStats() {
+        pbHistory.visibility = View.VISIBLE
+
         apiService.getWorkoutStats { success, data, _ ->
             activity?.runOnUiThread {
+                pbHistory.visibility = View.GONE
+
                 if (success && data != null) {
                     val calories = data.optDouble("total_calories", 0.0)
                     val duration = data.optInt("total_duration", 0)
                     val sets = data.optInt("total_sets", 0)
                     val reps = data.optInt("total_reps", 0)
                     val intensity = data.optDouble("average_intensity", 0.0)
+                    val totalWorkouts = data.optInt("total_workouts", 0)
 
+                    // Today's Workout card
                     tvTodayCalories.text = "${calories.toInt()} kcal"
                     tvTodayDuration.text = "$duration min"
                     tvTodaySetsReps.text = "$sets / $reps"
                     tvTodayIntensity.text = String.format(Locale.getDefault(), "%.1f", intensity)
+
+                    // Muscle Focus from exercise breakdown
+                    val breakdown = data.optJSONObject("exercise_breakdown")
+                    var legsSets = 0
+                    var armsSets = 0
+                    var chestSets = 0
+
+                    if (breakdown != null) {
+                        val keys = breakdown.keys()
+                        while (keys.hasNext()) {
+                            val ex = keys.next()
+                            val exSets = breakdown.optInt(ex, 0)
+                            when (ex) {
+                                "squat", "lunge" -> legsSets += exSets
+                                "curl", "press" -> armsSets += exSets
+                                "pushup" -> chestSets += exSets
+                            }
+                        }
+                    }
+
+                    val totalMuscleSets = legsSets + armsSets + chestSets
+                    if (totalMuscleSets > 0) {
+                        val legsPct = (legsSets * 100) / totalMuscleSets
+                        val armsPct = (armsSets * 100) / totalMuscleSets
+                        val chestPct = (chestSets * 100) / totalMuscleSets
+
+                        tvFocusLegs.text = "$legsPct%"
+                        tvFocusArms.text = "$armsPct%"
+                        tvFocusChest.text = "$chestPct%"
+
+                        pbLegsFocus.progress = legsPct
+                        pbArmsFocus.progress = armsPct
+                        pbChestFocus.progress = chestPct
+                    } else {
+                        tvFocusLegs.text = "0%"
+                        tvFocusArms.text = "0%"
+                        tvFocusChest.text = "0%"
+
+                        pbLegsFocus.progress = 0
+                        pbArmsFocus.progress = 0
+                        pbChestFocus.progress = 0
+                    }
+
+                    // Form Quality — based on actual sessions today
+                    if (totalWorkouts > 0) {
+                        // Derive a quality score from intensity consistency
+                        val avgIntPerSession = if (totalWorkouts > 0) intensity else 0.0
+                        val quality = when {
+                            avgIntPerSession >= 50 -> 95
+                            avgIntPerSession >= 30 -> 88
+                            avgIntPerSession >= 15 -> 78
+                            avgIntPerSession > 0 -> 65
+                            else -> 0
+                        }
+                        tvFormPercentage.text = "$quality%"
+                    } else {
+                        tvFormPercentage.text = "--"
+                    }
                 } else {
+                    // No data / error — reset everything
                     tvTodayCalories.text = "0 kcal"
                     tvTodayDuration.text = "0 min"
                     tvTodaySetsReps.text = "0 / 0"
                     tvTodayIntensity.text = "0.0"
+
+                    tvFocusLegs.text = "0%"
+                    tvFocusArms.text = "0%"
+                    tvFocusChest.text = "0%"
+                    pbLegsFocus.progress = 0
+                    pbArmsFocus.progress = 0
+                    pbChestFocus.progress = 0
+
+                    tvFormPercentage.text = "--"
                 }
             }
-        }
-    }
-
-    private fun fetchHistoryAndCalculateStats() {
-        pbHistory.visibility = View.VISIBLE
-
-        apiService.getWorkouts { success, array, _ ->
-            activity?.runOnUiThread {
-                pbHistory.visibility = View.GONE
-                if (success && array != null) {
-                    calculateAndPopulateStats(array)
-                } else {
-                    // Populate default/empty stats representation
-                    calculateAndPopulateStats(JSONArray())
-                }
-            }
-        }
-    }
-
-    private fun calculateAndPopulateStats(array: JSONArray) {
-        var totalSets = 0
-        val totalSessions = array.length()
-
-        // Muscle distribution sets counts
-        var legsSets = 0
-        var armsSets = 0
-        var chestSets = 0
-
-        for (i in 0 until array.length()) {
-            val log = array.getJSONObject(i)
-            val exercise = log.optString("exercise", "")
-            val sets = log.optInt("sets", 0)
-
-            totalSets += sets
-
-            // Categorize muscle focus by sets count
-            when (exercise) {
-                "squat", "lunge" -> legsSets += sets
-                "curl", "press" -> armsSets += sets
-                "pushup" -> chestSets += sets
-            }
-        }
-
-        // Update Muscle Focus Percentages
-        val totalMuscleSets = legsSets + armsSets + chestSets
-        if (totalMuscleSets > 0) {
-            val legsPct = (legsSets * 100) / totalMuscleSets
-            val armsPct = (armsSets * 100) / totalMuscleSets
-            val chestPct = (chestSets * 100) / totalMuscleSets
-
-            tvFocusLegs.text = "$legsPct%"
-            tvFocusArms.text = "$armsPct%"
-            tvFocusChest.text = "$chestPct%"
-
-            pbLegsFocus.progress = legsPct
-            pbArmsFocus.progress = armsPct
-            pbChestFocus.progress = chestPct
-        } else {
-            // Default split if no logs exist yet
-            tvFocusLegs.text = "45%"
-            tvFocusArms.text = "35%"
-            tvFocusChest.text = "20%"
-
-            pbLegsFocus.progress = 45
-            pbArmsFocus.progress = 35
-            pbChestFocus.progress = 20
-        }
-
-        // Update Form Quality rating
-        if (totalSessions > 0) {
-            tvFormPercentage.text = "94%"
-        } else {
-            tvFormPercentage.text = "--"
         }
     }
 }

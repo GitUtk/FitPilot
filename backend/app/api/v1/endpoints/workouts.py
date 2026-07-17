@@ -85,6 +85,12 @@ async def get_workout_stats(current_user = Depends(deps.get_current_user), db = 
     total_intensity = sum(w.get("intensity_score", 0.0) for w in workouts)
     average_intensity = round(total_intensity / total_workouts, 2) if total_workouts > 0 else 0.0
 
+    # Per-exercise sets breakdown for muscle focus
+    exercise_breakdown = {}
+    for w in workouts:
+        ex = w.get("exercise", "unknown")
+        exercise_breakdown[ex] = exercise_breakdown.get(ex, 0) + w.get("sets", 0)
+
     return {
         "total_workouts": total_workouts,
         "total_calories": round(total_calories, 2),
@@ -92,4 +98,5 @@ async def get_workout_stats(current_user = Depends(deps.get_current_user), db = 
         "total_reps": total_reps,
         "total_duration": total_duration,
         "average_intensity": average_intensity,
+        "exercise_breakdown": exercise_breakdown,
     }
