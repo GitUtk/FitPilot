@@ -108,18 +108,65 @@ async def chat_meal_logging(payload: ChatTextRequest, current_user = Depends(dep
             "parts": [{"text": doc["text"]}]
         })
 
+    # Calculate BMI and build user profile context
+    user_weight = current_user.get("weight_kg", 70.0)
+    user_height_cm = current_user.get("height_cm", 170.0)
+    user_gender = current_user.get("gender", "Not specified")
+    user_name = current_user.get("full_name", "User")
+    user_height_m = user_height_cm / 100.0
+    user_bmi = round(user_weight / (user_height_m ** 2), 1) if user_height_m > 0 else 0
+
+    if user_bmi < 18.5:
+        bmi_category = "Underweight"
+        bmi_advice = "Focus on caloric surplus with nutrient-dense foods, strength training to build lean mass."
+    elif user_bmi < 25.0:
+        bmi_category = "Normal weight"
+        bmi_advice = "Maintain current habits. Focus on balanced macros and progressive overload in training."
+    elif user_bmi < 30.0:
+        bmi_category = "Overweight"
+        bmi_advice = "Aim for a moderate caloric deficit (~300-500 kcal/day), prioritize protein intake and cardio."
+    else:
+        bmi_category = "Obese"
+        bmi_advice = "Focus on sustainable caloric deficit, low-impact cardio, and consult a healthcare professional."
+
+    # Gender-specific recommendations
+    if user_gender and user_gender.lower() == "male":
+        gender_protein_factor = 1.8  # g per kg
+        gender_note = "As a male, aim for higher protein to support testosterone-driven muscle synthesis."
+    elif user_gender and user_gender.lower() == "female":
+        gender_protein_factor = 1.6  # g per kg
+        gender_note = "As a female, ensure adequate iron and calcium intake alongside protein goals."
+    else:
+        gender_protein_factor = 1.6
+        gender_note = ""
+
+    user_profile_text = (
+        f"USER PROFILE:\n"
+        f"- Name: {user_name}\n"
+        f"- Gender: {user_gender}\n"
+        f"- Weight: {user_weight} kg\n"
+        f"- Height: {user_height_cm} cm\n"
+        f"- BMI: {user_bmi} ({bmi_category})\n"
+        f"- Daily Protein Target: {round(user_weight * gender_protein_factor, 0)}g\n"
+        f"- BMI-based Advice: {bmi_advice}\n"
+    )
+    if gender_note:
+        user_profile_text += f"- Gender Note: {gender_note}\n"
+
     system_instruction = (
         "You are FitPilot's premium AI Fitness and Nutrition Coach. "
-        "You have direct access to the user's past 7 days of nutrition/diet and physical exercises logs.\n\n"
+        "You have direct access to the user's body profile and their past 7 days of nutrition/diet and physical exercises logs.\n\n"
+        f"{user_profile_text}\n"
         f"PAST 7 DAYS MEALS:\n{meals_text}\n\n"
         f"PAST 7 DAYS WORKOUTS:\n{workouts_text}\n\n"
         "Your tasks:\n"
-        "1. Guide the user on what they should do today (dietary target, macronutrients intake, workout focus) based on their 7-day logs.\n"
-        "2. Answer fitness and diet questions professionally.\n"
-        "3. If they talk about eating a meal, analyze and log it using ICMR standard portion sizes, estimating Calories (kcal), Protein (g), Carbohydrates (g), and Fats (g).\n"
-        "4. If portion size, quantity, or specific food detail is unclear to log, ask exactly ONE clarifying question.\n"
-        "5. Output analysis in a clear, bulleted summary format. Keep responses brief, friendly, and structured.\n"
-        "6. If you have enough details to log the meal, you MUST append a tag at the very end of your response: "
+        "1. Personalize ALL advice based on the user's BMI, gender, weight, and height. Calculate caloric needs using their body metrics.\n"
+        "2. Guide the user on what they should do today (dietary target, macronutrients intake, workout focus) based on their profile and 7-day logs.\n"
+        "3. Answer fitness and diet questions professionally, always contextualizing to their body composition.\n"
+        "4. If they talk about eating a meal, analyze and log it using ICMR standard portion sizes, estimating Calories (kcal), Protein (g), Carbohydrates (g), and Fats (g).\n"
+        "5. If portion size, quantity, or specific food detail is unclear to log, ask exactly ONE clarifying question.\n"
+        "6. Output analysis in a clear, bulleted summary format. Keep responses brief, friendly, and structured.\n"
+        "7. If you have enough details to log the meal, you MUST append a tag at the very end of your response: "
         "<meal_log>{\"description\": \"brief summary of food items\", \"calories\": 123.0, \"protein\": 12.0, \"carbs\": 34.0, \"fat\": 5.0}</meal_log>. "
         "Otherwise, do NOT append any <meal_log> tag."
     )
@@ -214,11 +261,29 @@ async def list_meals(current_user = Depends(deps.get_current_user), db = Depends
     meals = await cursor.to_list(length=100)
     return [serialize_meal(m) for m in meals]
 
+@router.get("/today", response_model=List[MealResponse])
+async def list_meals_today(current_user = Depends(deps.get_current_user), db = Depends(deps.get_db)) -> Any:
+    # Use IST (UTC+5:30) for "today" boundary
+    ist = timezone(timedelta(hours=5, minutes=30))
+    now_ist = datetime.now(ist)
+    start_of_day_ist = datetime.combine(now_ist.date(), time.min, tzinfo=ist)
+    start_of_day_utc = start_of_day_ist.astimezone(timezone.utc)
+
+    cursor = db["meals"].find({
+        "user_id": ObjectId(current_user["id"]),
+        "timestamp": {"$gte": start_of_day_utc}
+    }).sort("timestamp", -1)
+    meals = await cursor.to_list(length=100)
+    return [serialize_meal(m) for m in meals]
+
 @router.get("/adaptation", response_model=AdaptationResponse)
 async def get_adaptation_advice(current_user = Depends(deps.get_current_user), db = Depends(deps.get_db)) -> Any:
     try:
-        today_dt = datetime.now(timezone.utc)
-        start_of_day = datetime.combine(today_dt.date(), time.min, tzinfo=timezone.utc)
+        # Use IST (UTC+5:30) for "today" boundary
+        ist = timezone(timedelta(hours=5, minutes=30))
+        now_ist = datetime.now(ist)
+        start_of_day_ist = datetime.combine(now_ist.date(), time.min, tzinfo=ist)
+        start_of_day = start_of_day_ist.astimezone(timezone.utc)
 
         cursor_workouts = db["workouts"].find({
             "user_id": ObjectId(current_user["id"]),
@@ -233,6 +298,16 @@ async def get_adaptation_advice(current_user = Depends(deps.get_current_user), d
         meals = await cursor_meals.to_list(length=100)
 
         weight = current_user.get("weight_kg", 70.0)
+        height_cm = current_user.get("height_cm", 170.0)
+        gender = current_user.get("gender", "")
+        height_m = height_cm / 100.0
+        bmi = round(weight / (height_m ** 2), 1) if height_m > 0 else 0
+
+        # Gender-aware protein factor
+        if gender and gender.lower() == "male":
+            protein_factor = 1.8
+        else:
+            protein_factor = 1.6
 
         total_workout_calories = 0.0
         for w in workouts:
@@ -248,8 +323,18 @@ async def get_adaptation_advice(current_user = Depends(deps.get_current_user), d
             total_carbs += m.get("carbs", 0.0)
             total_fat += m.get("fat", 0.0)
 
-        target_calories = 2000.0 + total_workout_calories
-        target_protein = weight * 1.6
+        # BMI-adjusted base calorie target
+        if bmi < 18.5:
+            base_calories = 2300.0  # surplus for underweight
+        elif bmi < 25.0:
+            base_calories = 2000.0  # maintenance
+        elif bmi < 30.0:
+            base_calories = 1700.0  # deficit for overweight
+        else:
+            base_calories = 1500.0  # deficit for obese
+
+        target_calories = base_calories + total_workout_calories
+        target_protein = weight * protein_factor
         target_carbs = weight * 3.0
         target_fat = weight * 1.0
 

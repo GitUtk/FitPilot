@@ -35,6 +35,24 @@ class ApiService(context: Context) {
             prefs.edit().putString("user_email", value).apply()
         }
 
+    var userWeight: Float
+        get() = prefs.getFloat("user_weight", 70f)
+        set(value) {
+            prefs.edit().putFloat("user_weight", value).apply()
+        }
+
+    var userHeight: Float
+        get() = prefs.getFloat("user_height", 170f)
+        set(value) {
+            prefs.edit().putFloat("user_height", value).apply()
+        }
+
+    var userGender: String?
+        get() = prefs.getString("user_gender", "")
+        set(value) {
+            prefs.edit().putString("user_gender", value).apply()
+        }
+
     fun logout() {
         prefs.edit().clear().apply()
     }
@@ -96,11 +114,14 @@ class ApiService(context: Context) {
         })
     }
 
-    fun signup(email: String, password: String, fullName: String, callback: (Boolean, String?) -> Unit) {
+    fun signup(email: String, password: String, fullName: String, weightKg: Double, heightCm: Double, gender: String, callback: (Boolean, String?) -> Unit) {
         val json = JSONObject().apply {
             put("email", email)
             put("password", password)
             put("full_name", fullName.ifEmpty { JSONObject.NULL })
+            put("weight_kg", weightKg)
+            put("height_cm", heightCm)
+            put("gender", gender)
         }
         val body = json.toString().toRequestBody(JSON_MEDIA_TYPE)
         val request = buildRequest("$BASE_URL/auth/signup", "POST", body)
@@ -142,6 +163,9 @@ class ApiService(context: Context) {
                     val data = JSONObject(response.body?.string() ?: "")
                     userName = data.optString("full_name", "Pilot")
                     userEmail = data.optString("email", "")
+                    userWeight = data.optDouble("weight_kg", 70.0).toFloat()
+                    userHeight = data.optDouble("height_cm", 170.0).toFloat()
+                    userGender = data.optString("gender", "")
                     callback(true, null)
                 }
             }
@@ -325,6 +349,27 @@ class ApiService(context: Context) {
                 response.use {
                     if (!response.isSuccessful) {
                         callback(false, null, "Failed to fetch meals")
+                        return
+                    }
+                    val data = JSONArray(response.body?.string() ?: "[]")
+                    callback(true, data, null)
+                }
+            }
+        })
+    }
+
+    fun getMealsToday(callback: (Boolean, JSONArray?, String?) -> Unit) {
+        val request = buildRequest("$BASE_URL/meals/today", "GET")
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                callback(false, null, e.localizedMessage)
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                response.use {
+                    if (!response.isSuccessful) {
+                        callback(false, null, "Failed to fetch today's meals")
                         return
                     }
                     val data = JSONArray(response.body?.string() ?: "[]")

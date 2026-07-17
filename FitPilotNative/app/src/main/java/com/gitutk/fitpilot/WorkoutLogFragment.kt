@@ -1,7 +1,6 @@
 package com.gitutk.fitpilot
 
 import android.os.Bundle
-import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -10,7 +9,6 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import org.json.JSONArray
 import org.json.JSONObject
-import java.text.SimpleDateFormat
 import java.util.*
 
 class WorkoutLogFragment : Fragment() {
@@ -51,16 +49,11 @@ class WorkoutLogFragment : Fragment() {
     private lateinit var pbArmsFocus: ProgressBar
     private lateinit var pbChestFocus: ProgressBar
 
-    // Weekly bars
-    private lateinit var pbMon: ProgressBar
-    private lateinit var pbTue: ProgressBar
-    private lateinit var pbWed: ProgressBar
-    private lateinit var pbThu: ProgressBar
-    private lateinit var pbFri: ProgressBar
-    private lateinit var pbSat: ProgressBar
-    private lateinit var pbSun: ProgressBar
-
-
+    // Today's Workout Stats
+    private lateinit var tvTodayCalories: TextView
+    private lateinit var tvTodayDuration: TextView
+    private lateinit var tvTodaySetsReps: TextView
+    private lateinit var tvTodayIntensity: TextView
 
     private lateinit var pbHistory: ProgressBar
 
@@ -99,20 +92,16 @@ class WorkoutLogFragment : Fragment() {
         tvFocusArms = view.findViewById(R.id.tvFocusArms)
         tvFocusChest = view.findViewById(R.id.tvFocusChest)
 
-        pbMon = view.findViewById(R.id.pbMon)
-        pbTue = view.findViewById(R.id.pbTue)
-        pbWed = view.findViewById(R.id.pbWed)
-        pbThu = view.findViewById(R.id.pbThu)
-        pbFri = view.findViewById(R.id.pbFri)
-        pbSat = view.findViewById(R.id.pbSat)
-        pbSun = view.findViewById(R.id.pbSun)
-
         // Dynamically find muscle progress bars in visual hierarchy
         pbLegsFocus = view.findViewById(R.id.pbLegsFocus)
         pbArmsFocus = view.findViewById(R.id.pbArmsFocus)
         pbChestFocus = view.findViewById(R.id.pbChestFocus)
-        
 
+        // Today's Workout Stats
+        tvTodayCalories = view.findViewById(R.id.tvTodayCalories)
+        tvTodayDuration = view.findViewById(R.id.tvTodayDuration)
+        tvTodaySetsReps = view.findViewById(R.id.tvTodaySetsReps)
+        tvTodayIntensity = view.findViewById(R.id.tvTodayIntensity)
 
         pbHistory = view.findViewById(R.id.pbHistory)
 
@@ -124,6 +113,9 @@ class WorkoutLogFragment : Fragment() {
 
         // Load dynamic infographics from recent history
         fetchHistoryAndCalculateStats()
+
+        // Load today's workout stats from API
+        fetchTodayStats()
 
         // Bind actions
         btnLogSet.setOnClickListener { logCurrentSet() }
@@ -252,6 +244,7 @@ class WorkoutLogFragment : Fragment() {
                     val displayName = selectedExerciseKey.replaceFirstChar { it.uppercase() }
                     Toast.makeText(context, "$displayName set logged!", Toast.LENGTH_SHORT).show()
                     fetchHistoryAndCalculateStats()
+                    fetchTodayStats()
                 } else {
                     Toast.makeText(context, error ?: "Failed to log set", Toast.LENGTH_LONG).show()
                 }
@@ -262,6 +255,30 @@ class WorkoutLogFragment : Fragment() {
     private fun startAICamera() {
         val poseFragment = PoseFragment.newInstance(selectedExerciseKey)
         (activity as MainActivity).loadFragment(poseFragment, true)
+    }
+
+    private fun fetchTodayStats() {
+        apiService.getWorkoutStats { success, data, _ ->
+            activity?.runOnUiThread {
+                if (success && data != null) {
+                    val calories = data.optDouble("total_calories", 0.0)
+                    val duration = data.optInt("total_duration", 0)
+                    val sets = data.optInt("total_sets", 0)
+                    val reps = data.optInt("total_reps", 0)
+                    val intensity = data.optDouble("average_intensity", 0.0)
+
+                    tvTodayCalories.text = "${calories.toInt()} kcal"
+                    tvTodayDuration.text = "$duration min"
+                    tvTodaySetsReps.text = "$sets / $reps"
+                    tvTodayIntensity.text = String.format(Locale.getDefault(), "%.1f", intensity)
+                } else {
+                    tvTodayCalories.text = "0 kcal"
+                    tvTodayDuration.text = "0 min"
+                    tvTodaySetsReps.text = "0 / 0"
+                    tvTodayIntensity.text = "0.0"
+                }
+            }
+        }
     }
 
     private fun fetchHistoryAndCalculateStats() {
@@ -281,9 +298,7 @@ class WorkoutLogFragment : Fragment() {
     }
 
     private fun calculateAndPopulateStats(array: JSONArray) {
-        var totalVolume = 0.0
         var totalSets = 0
-        var totalReps = 0
         val totalSessions = array.length()
 
         // Muscle distribution sets counts
@@ -291,24 +306,12 @@ class WorkoutLogFragment : Fragment() {
         var armsSets = 0
         var chestSets = 0
 
-        // Weekly activity volume distribution (Mon-Sun)
-        val weeklyVolume = DoubleArray(7)
-
-        val parser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
-        val cal = Calendar.getInstance()
-
         for (i in 0 until array.length()) {
             val log = array.getJSONObject(i)
             val exercise = log.optString("exercise", "")
             val sets = log.optInt("sets", 0)
-            val reps = log.optInt("reps", 0)
-            val weight = log.optDouble("weight", 0.0)
-            val dateStr = log.optString("created_at", "")
 
-            // Sum standard metrics
             totalSets += sets
-            totalReps += reps
-            totalVolume += (sets * reps * weight)
 
             // Categorize muscle focus by sets count
             when (exercise) {
@@ -316,35 +319,9 @@ class WorkoutLogFragment : Fragment() {
                 "curl", "press" -> armsSets += sets
                 "pushup" -> chestSets += sets
             }
-
-            // Calculate weekly day distribution
-            try {
-                val date = parser.parse(dateStr)
-                if (date != null) {
-                    cal.time = date
-                    // Calendar.DAY_OF_WEEK: Sunday = 1, Monday = 2, ..., Saturday = 7
-                    val dayOfWeek = cal.get(Calendar.DAY_OF_WEEK)
-                    // Map to Mon=0, Tue=1, Wed=2, Thu=3, Fri=4, Sat=5, Sun=6
-                    val dayIndex = when (dayOfWeek) {
-                        Calendar.MONDAY -> 0
-                        Calendar.TUESDAY -> 1
-                        Calendar.WEDNESDAY -> 2
-                        Calendar.THURSDAY -> 3
-                        Calendar.FRIDAY -> 4
-                        Calendar.SATURDAY -> 5
-                        Calendar.SUNDAY -> 6
-                        else -> 0
-                    }
-                    weeklyVolume[dayIndex] += (sets * reps * weight)
-                }
-            } catch (e: Exception) {
-                // Ignore parsing issues
-            }
         }
 
-
-
-        // 2. Update Muscle Focus Percentages
+        // Update Muscle Focus Percentages
         val totalMuscleSets = legsSets + armsSets + chestSets
         if (totalMuscleSets > 0) {
             val legsPct = (legsSets * 100) / totalMuscleSets
@@ -369,24 +346,11 @@ class WorkoutLogFragment : Fragment() {
             pbChestFocus.progress = 20
         }
 
-        // 3. Update Form Quality rating
+        // Update Form Quality rating
         if (totalSessions > 0) {
             tvFormPercentage.text = "94%"
         } else {
             tvFormPercentage.text = "--"
-        }
-
-        // 4. Update Weekly load distribution bars
-        var maxVol = 0.0
-        for (vol in weeklyVolume) {
-            if (vol > maxVol) maxVol = vol
-        }
-
-        val bars = arrayOf(pbMon, pbTue, pbWed, pbThu, pbFri, pbSat, pbSun)
-        for (day in 0..6) {
-            val vol = weeklyVolume[day]
-            val pct = if (maxVol > 0) ((vol * 100) / maxVol).toInt() else 0
-            bars[day].progress = if (pct > 5) pct else 5 // keep a minimal visual dot if 0
         }
     }
 }

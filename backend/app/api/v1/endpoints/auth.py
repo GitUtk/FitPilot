@@ -22,6 +22,9 @@ async def signup(user_in: UserCreate, db = Depends(deps.get_db)) -> Any:
         "hashed_password": security.get_password_hash(user_in.password),
         "full_name": user_in.full_name,
         "is_active": True,
+        "weight_kg": user_in.weight_kg,
+        "height_cm": user_in.height_cm,
+        "gender": user_in.gender,
         "created_at": datetime.now(timezone.utc),
     }
     result = await db["users"].insert_one(user_dict)

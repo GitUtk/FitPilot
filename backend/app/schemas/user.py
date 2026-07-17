@@ -6,6 +6,8 @@ class UserBase(BaseModel):
     email: EmailStr
     full_name: Optional[str] = None
     weight_kg: Optional[float] = 70.0
+    height_cm: Optional[float] = 170.0
+    gender: Optional[str] = None
 
 class UserCreate(UserBase):
     password: str
@@ -15,6 +17,8 @@ class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     password: Optional[str] = None
     weight_kg: Optional[float] = None
+    height_cm: Optional[float] = None
+    gender: Optional[str] = None
 
 class UserInDBBase(UserBase):
     id: str

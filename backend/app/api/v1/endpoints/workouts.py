@@ -1,5 +1,5 @@
 from typing import Any, List
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta, time
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, status
 from app.api import deps
@@ -63,13 +63,24 @@ async def list_workouts(current_user = Depends(deps.get_current_user), db = Depe
 
 @router.get("/stats", response_model=WorkoutStats)
 async def get_workout_stats(current_user = Depends(deps.get_current_user), db = Depends(deps.get_db)) -> Any:
-    cursor = db["workouts"].find({"user_id": ObjectId(current_user["id"])})
+    # Use IST (UTC+5:30) for "today" boundary
+    ist = timezone(timedelta(hours=5, minutes=30))
+    now_ist = datetime.now(ist)
+    start_of_day_ist = datetime.combine(now_ist.date(), time.min, tzinfo=ist)
+    # Convert to UTC for MongoDB query
+    start_of_day_utc = start_of_day_ist.astimezone(timezone.utc)
+
+    cursor = db["workouts"].find({
+        "user_id": ObjectId(current_user["id"]),
+        "timestamp": {"$gte": start_of_day_utc}
+    })
     workouts = await cursor.to_list(length=1000)
 
     total_workouts = len(workouts)
     total_calories = sum(w.get("calories_burned", 0.0) for w in workouts)
     total_sets = sum(w.get("sets", 0) for w in workouts)
     total_reps = sum(w.get("reps", 0) for w in workouts)
+    total_duration = sum(w.get("duration_minutes", 0) for w in workouts)
     
     total_intensity = sum(w.get("intensity_score", 0.0) for w in workouts)
     average_intensity = round(total_intensity / total_workouts, 2) if total_workouts > 0 else 0.0
@@ -79,5 +90,6 @@ async def get_workout_stats(current_user = Depends(deps.get_current_user), db = 
         "total_calories": round(total_calories, 2),
         "total_sets": total_sets,
         "total_reps": total_reps,
+        "total_duration": total_duration,
         "average_intensity": average_intensity,
     }

@@ -25,4 +25,5 @@ class WorkoutStats(BaseModel):
     total_calories: float
     total_sets: int
     total_reps: int
+    total_duration: int = 0
     average_intensity: float

@@ -14,8 +14,10 @@ import androidx.fragment.app.Fragment
 import org.json.JSONArray
 import org.json.JSONObject
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 class DashboardFragment : Fragment() {
 
@@ -35,6 +37,9 @@ class DashboardFragment : Fragment() {
     private lateinit var btnSync: Button
     private lateinit var btnLogout: ImageButton
     private lateinit var llSuggestionsContainer: android.widget.LinearLayout
+
+    // IST timezone
+    private val istTimeZone: TimeZone = TimeZone.getTimeZone("Asia/Kolkata")
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -61,12 +66,14 @@ class DashboardFragment : Fragment() {
         btnLogout = view.findViewById(R.id.btnLogout)
         llSuggestionsContainer = view.findViewById(R.id.llSuggestionsContainer)
 
-        // Set Date
+        // Set Date in IST
         val sdf = SimpleDateFormat("EEEE, MMM dd", Locale.getDefault())
+        sdf.timeZone = istTimeZone
         tvDate.text = sdf.format(Date())
 
-        // Set Greeting Name
-        val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+        // Set Greeting Name using IST hour
+        val istCalendar = Calendar.getInstance(istTimeZone)
+        val hour = istCalendar.get(Calendar.HOUR_OF_DAY)
         val greeting = when {
             hour in 5..11 -> "Good Morning"
             hour in 12..16 -> "Good Afternoon"
@@ -94,12 +101,12 @@ class DashboardFragment : Fragment() {
         pbAdaptation.visibility = View.VISIBLE
         tvAdaptationText.text = "Syncing metabolic stats..."
 
-        // 1. Fetch Workouts stats
+        // 1. Fetch today's workout stats (IST-filtered on backend)
         apiService.getWorkoutStats { success, data, error ->
             if (success && data != null) {
                 activity?.runOnUiThread {
                     val burn = data.optDouble("total_calories", 0.0).toInt()
-                    val mins = data.optDouble("total_duration", 0.0).toInt()
+                    val mins = data.optInt("total_duration", 0)
                     val exertion = data.optDouble("average_intensity", 0.0)
 
                     tvWorkoutBurnVal.text = "$burn kcal"
@@ -109,8 +116,8 @@ class DashboardFragment : Fragment() {
             }
         }
 
-        // 2. Fetch Meals stats
-        apiService.getMeals { success, mealsArray, error ->
+        // 2. Fetch today's meals (IST-filtered on backend)
+        apiService.getMealsToday { success, mealsArray, error ->
             if (success && mealsArray != null) {
                 activity?.runOnUiThread {
                     var totalCalories = 0.0
@@ -133,7 +140,7 @@ class DashboardFragment : Fragment() {
             }
         }
 
-        // 3. Fetch AI adaptation advice
+        // 3. Fetch AI adaptation advice (IST-filtered on backend)
         apiService.getAdaptationAdvice { success, data, error ->
             activity?.runOnUiThread {
                 pbAdaptation.visibility = View.GONE
@@ -159,7 +166,8 @@ class DashboardFragment : Fragment() {
         val context = context ?: return
         llSuggestionsContainer.removeAllViews()
 
-        val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+        val istCalendar = Calendar.getInstance(istTimeZone)
+        val hour = istCalendar.get(Calendar.HOUR_OF_DAY)
         val suggestions = when {
             hour in 5..11 -> listOf(
                 FoodSuggestion("Moong Dal Chilla", "AI BREAKFAST PICK", "250 kcal", "P: 14g • C: 28g • F: 8g", R.drawable.moong_dal_chilla),
