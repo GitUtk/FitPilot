@@ -36,6 +36,7 @@ class WorkoutLogFragment : Fragment() {
     private lateinit var etSets: EditText
     private lateinit var etReps: EditText
     private lateinit var etWeight: EditText
+    private lateinit var llWeightContainer: LinearLayout
     private lateinit var btnLogSet: Button
     private lateinit var btnStartAI: Button
 
@@ -86,6 +87,7 @@ class WorkoutLogFragment : Fragment() {
         etSets = view.findViewById(R.id.etSets)
         etReps = view.findViewById(R.id.etReps)
         etWeight = view.findViewById(R.id.etWeight)
+        llWeightContainer = view.findViewById(R.id.llWeightContainer)
         btnLogSet = view.findViewById(R.id.btnLogSet)
         btnStartAI = view.findViewById(R.id.btnStartAI)
 
@@ -183,6 +185,7 @@ class WorkoutLogFragment : Fragment() {
                 etSets.setText("3")
                 etReps.setText("10")
                 etWeight.setText("40")
+                llWeightContainer.visibility = View.VISIBLE
                 etWeight.isEnabled = true
                 tvRepsLabel.text = "Reps"
                 tvWeightLabel.text = "Weight (kg)"
@@ -191,6 +194,7 @@ class WorkoutLogFragment : Fragment() {
                 etSets.setText("3")
                 etReps.setText("12")
                 etWeight.setText("15")
+                llWeightContainer.visibility = View.VISIBLE
                 etWeight.isEnabled = true
                 tvRepsLabel.text = "Reps"
                 tvWeightLabel.text = "Weight (kg)"
@@ -199,14 +203,16 @@ class WorkoutLogFragment : Fragment() {
                 etSets.setText("3")
                 etReps.setText("15")
                 etWeight.setText("0")
+                llWeightContainer.visibility = View.GONE
                 etWeight.isEnabled = false
                 tvRepsLabel.text = "Reps"
-                tvWeightLabel.text = "Weight (Bodyweight)"
+                tvWeightLabel.text = ""
             }
             "lunge" -> {
                 etSets.setText("3")
                 etReps.setText("12")
                 etWeight.setText("20")
+                llWeightContainer.visibility = View.VISIBLE
                 etWeight.isEnabled = true
                 tvRepsLabel.text = "Reps"
                 tvWeightLabel.text = "Weight (kg)"
@@ -215,6 +221,7 @@ class WorkoutLogFragment : Fragment() {
                 etSets.setText("3")
                 etReps.setText("10")
                 etWeight.setText("30")
+                llWeightContainer.visibility = View.VISIBLE
                 etWeight.isEnabled = true
                 tvRepsLabel.text = "Reps"
                 tvWeightLabel.text = "Weight (kg)"
@@ -227,14 +234,14 @@ class WorkoutLogFragment : Fragment() {
         val repsStr = etReps.text.toString()
         val weightStr = etWeight.text.toString()
 
-        if (setsStr.isEmpty() || repsStr.isEmpty() || weightStr.isEmpty()) {
+        if (setsStr.isEmpty() || repsStr.isEmpty() || (selectedExerciseKey != "pushup" && weightStr.isEmpty())) {
             Toast.makeText(context, "Please configure all set values", Toast.LENGTH_SHORT).show()
             return
         }
 
         val sets = setsStr.toInt()
         val reps = repsStr.toInt()
-        val weight = weightStr.toDouble()
+        val weight = if (selectedExerciseKey == "pushup") 0.0 else weightStr.toDouble()
 
         btnLogSet.isEnabled = false
         apiService.logWorkout(selectedExerciseKey, sets, reps, weight) { success, _, error ->
