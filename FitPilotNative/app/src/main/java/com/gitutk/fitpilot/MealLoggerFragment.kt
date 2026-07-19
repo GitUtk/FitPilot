@@ -235,12 +235,16 @@ class MealLoggerFragment : Fragment() {
         val padVertical = (16 * density).toInt()
 
         val widths = listOf(
-            listOf(0.7f, 0.4f),
-            listOf(0.85f, 0.6f, 0.3f),
-            listOf(0.5f)
+            listOf(0.7f, 0.4f),        // AI 1
+            listOf(0.5f),              // User 1
+            listOf(0.85f, 0.6f, 0.3f), // AI 2
+            listOf(0.75f),             // User 2
+            listOf(0.6f, 0.5f),        // AI 3
+            listOf(0.4f)               // User 3
         )
 
-        for (i in 0 until 3) {
+        for (i in 0 until 6) {
+            val isUserBubble = i % 2 != 0
             val bubble = LinearLayout(context).apply {
                 orientation = LinearLayout.HORIZONTAL
                 layoutParams = LinearLayout.LayoutParams(
@@ -250,7 +254,7 @@ class MealLoggerFragment : Fragment() {
                     topMargin = marginTopBottom
                     bottomMargin = marginTopBottom
                 }
-                gravity = Gravity.START
+                gravity = if (isUserBubble) Gravity.END else Gravity.START
             }
 
             val card = MaterialCardView(context).apply {
@@ -258,15 +262,20 @@ class MealLoggerFragment : Fragment() {
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
                 ).apply {
-                    leftMargin = marginSide
-                    rightMargin = marginOpposite
+                    leftMargin = if (isUserBubble) marginOpposite else marginSide
+                    rightMargin = if (isUserBubble) marginSide else marginOpposite
                 }
                 cardElevation = 0f
                 radius = cardRadius
                 setContentPadding(padHorizontal, padVertical, padHorizontal, padVertical)
-                setCardBackgroundColor(ContextCompat.getColorStateList(context, R.color.card_background))
-                setStrokeColor(ContextCompat.getColorStateList(context, R.color.border))
-                strokeWidth = strokePx
+                
+                if (isUserBubble) {
+                    setCardBackgroundColor(ContextCompat.getColorStateList(context, R.color.primary))
+                } else {
+                    setCardBackgroundColor(ContextCompat.getColorStateList(context, R.color.card_background))
+                    setStrokeColor(ContextCompat.getColorStateList(context, R.color.border))
+                    strokeWidth = strokePx
+                }
             }
 
             val barContainer = LinearLayout(context).apply {
@@ -284,7 +293,8 @@ class MealLoggerFragment : Fragment() {
                     val shape = android.graphics.drawable.GradientDrawable().apply {
                         shape = android.graphics.drawable.GradientDrawable.RECTANGLE
                         cornerRadius = 6 * density
-                        setColor(android.graphics.Color.parseColor("#E2E8F0"))
+                        val barColor = if (isUserBubble) "#334155" else "#E2E8F0"
+                        setColor(android.graphics.Color.parseColor(barColor))
                     }
                     background = shape
                     
@@ -321,7 +331,7 @@ class MealLoggerFragment : Fragment() {
                     val alphaVal = animation.animatedValue as Float
                     card.alpha = alphaVal
                 }
-                startDelay = (i * 200).toLong()
+                startDelay = (i * 150).toLong()
             }
             skeletonAnimators.add(animator)
             animator.start()

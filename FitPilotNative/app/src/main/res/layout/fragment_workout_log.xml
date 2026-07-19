@@ -58,7 +58,7 @@
                 <!-- Squat Item -->
                 <LinearLayout
                     android:id="@+id/llItemSquat"
-                    android:layout_width="80dp"
+                    android:layout_width="120dp"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
                     android:gravity="center"
@@ -68,8 +68,8 @@
                     android:background="?android:attr/selectableItemBackground">
                     <ImageView
                         android:id="@+id/ivItemSquat"
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
+                        android:layout_width="64dp"
+                        android:layout_height="64dp"
                         android:src="@drawable/squat" />
                     <TextView
                         android:id="@+id/tvItemSquat"
@@ -77,15 +77,15 @@
                         android:layout_height="wrap_content"
                         android:text="Squats"
                         android:textColor="@color/text_primary"
-                        android:textSize="11sp"
+                        android:textSize="13sp"
                         android:textStyle="bold"
-                        android:layout_marginTop="6dp" />
+                        android:layout_marginTop="10dp" />
                 </LinearLayout>
 
                 <!-- Curl Item -->
                 <LinearLayout
                     android:id="@+id/llItemCurl"
-                    android:layout_width="80dp"
+                    android:layout_width="120dp"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
                     android:gravity="center"
@@ -95,8 +95,8 @@
                     android:background="?android:attr/selectableItemBackground">
                     <ImageView
                         android:id="@+id/ivItemCurl"
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
+                        android:layout_width="64dp"
+                        android:layout_height="64dp"
                         android:src="@drawable/curl" />
                     <TextView
                         android:id="@+id/tvItemCurl"
@@ -104,14 +104,14 @@
                         android:layout_height="wrap_content"
                         android:text="Curls"
                         android:textColor="@color/text_secondary"
-                        android:textSize="11sp"
-                        android:layout_marginTop="6dp" />
+                        android:textSize="13sp"
+                        android:layout_marginTop="10dp" />
                 </LinearLayout>
 
                 <!-- Pushup Item -->
                 <LinearLayout
                     android:id="@+id/llItemPushup"
-                    android:layout_width="80dp"
+                    android:layout_width="120dp"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
                     android:gravity="center"
@@ -121,8 +121,8 @@
                     android:background="?android:attr/selectableItemBackground">
                     <ImageView
                         android:id="@+id/ivItemPushup"
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
+                        android:layout_width="64dp"
+                        android:layout_height="64dp"
                         android:src="@drawable/pushup" />
                     <TextView
                         android:id="@+id/tvItemPushup"
@@ -130,14 +130,14 @@
                         android:layout_height="wrap_content"
                         android:text="Push-Ups"
                         android:textColor="@color/text_secondary"
-                        android:textSize="11sp"
-                        android:layout_marginTop="6dp" />
+                        android:textSize="13sp"
+                        android:layout_marginTop="10dp" />
                 </LinearLayout>
 
                 <!-- Lunge Item -->
                 <LinearLayout
                     android:id="@+id/llItemLunge"
-                    android:layout_width="80dp"
+                    android:layout_width="120dp"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
                     android:gravity="center"
@@ -147,8 +147,8 @@
                     android:background="?android:attr/selectableItemBackground">
                     <ImageView
                         android:id="@+id/ivItemLunge"
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
+                        android:layout_width="64dp"
+                        android:layout_height="64dp"
                         android:src="@drawable/lunge" />
                     <TextView
                         android:id="@+id/tvItemLunge"
@@ -156,14 +156,14 @@
                         android:layout_height="wrap_content"
                         android:text="Lunges"
                         android:textColor="@color/text_secondary"
-                        android:textSize="11sp"
-                        android:layout_marginTop="6dp" />
+                        android:textSize="13sp"
+                        android:layout_marginTop="10dp" />
                 </LinearLayout>
 
                 <!-- Press Item -->
                 <LinearLayout
                     android:id="@+id/llItemPress"
-                    android:layout_width="80dp"
+                    android:layout_width="120dp"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
                     android:gravity="center"
@@ -173,8 +173,8 @@
                     android:background="?android:attr/selectableItemBackground">
                     <ImageView
                         android:id="@+id/ivItemPress"
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
+                        android:layout_width="64dp"
+                        android:layout_height="64dp"
                         android:src="@drawable/press" />
                     <TextView
                         android:id="@+id/tvItemPress"
@@ -182,8 +182,8 @@
                         android:layout_height="wrap_content"
                         android:text="Press"
                         android:textColor="@color/text_secondary"
-                        android:textSize="11sp"
-                        android:layout_marginTop="6dp" />
+                        android:textSize="13sp"
+                        android:layout_marginTop="10dp" />
                 </LinearLayout>
 
             </LinearLayout>

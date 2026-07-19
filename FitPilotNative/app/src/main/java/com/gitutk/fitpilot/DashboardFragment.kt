@@ -25,7 +25,8 @@ class DashboardFragment : Fragment() {
     private lateinit var tvGreeting: TextView
     private lateinit var tvDate: TextView
     private lateinit var tvAdaptationText: TextView
-    private lateinit var pbAdaptation: ProgressBar
+    private lateinit var llAdaptationSkeleton: android.widget.LinearLayout
+    private var adaptationAnimator: android.animation.ValueAnimator? = null
     
     private lateinit var tvWorkoutBurnVal: TextView
     private lateinit var tvWorkoutBurnSub: TextView
@@ -53,7 +54,7 @@ class DashboardFragment : Fragment() {
         tvGreeting = view.findViewById(R.id.tvGreeting)
         tvDate = view.findViewById(R.id.tvDate)
         tvAdaptationText = view.findViewById(R.id.tvAdaptationText)
-        pbAdaptation = view.findViewById(R.id.pbAdaptation)
+        llAdaptationSkeleton = view.findViewById(R.id.llAdaptationSkeleton)
         
         tvWorkoutBurnVal = view.findViewById(R.id.tvWorkoutBurnVal)
         tvWorkoutBurnSub = view.findViewById(R.id.tvWorkoutBurnSub)
@@ -97,9 +98,38 @@ class DashboardFragment : Fragment() {
         return view
     }
 
+    override fun onDestroyView() {
+        super.onDestroyView()
+        adaptationAnimator?.cancel()
+        adaptationAnimator = null
+    }
+
+    private fun startAdaptationSkeletonAnimation() {
+        llAdaptationSkeleton.visibility = View.VISIBLE
+        tvAdaptationText.visibility = View.GONE
+        
+        adaptationAnimator?.cancel()
+        adaptationAnimator = android.animation.ValueAnimator.ofFloat(0.4f, 1.0f).apply {
+            duration = 800
+            repeatMode = android.animation.ValueAnimator.REVERSE
+            repeatCount = android.animation.ValueAnimator.INFINITE
+            addUpdateListener { animation ->
+                val alphaVal = animation.animatedValue as Float
+                llAdaptationSkeleton.alpha = alphaVal
+            }
+        }
+        adaptationAnimator?.start()
+    }
+
+    private fun stopAdaptationSkeletonAnimation() {
+        adaptationAnimator?.cancel()
+        adaptationAnimator = null
+        llAdaptationSkeleton.visibility = View.GONE
+        tvAdaptationText.visibility = View.VISIBLE
+    }
+
     private fun refreshStats() {
-        pbAdaptation.visibility = View.VISIBLE
-        tvAdaptationText.text = "Syncing metabolic stats..."
+        startAdaptationSkeletonAnimation()
 
         // 1. Fetch today's workout stats (IST-filtered on backend)
         apiService.getWorkoutStats { success, data, error ->
@@ -143,14 +173,19 @@ class DashboardFragment : Fragment() {
         // 3. Fetch AI adaptation advice (IST-filtered on backend)
         apiService.getAdaptationAdvice { success, data, error ->
             activity?.runOnUiThread {
-                pbAdaptation.visibility = View.GONE
+                stopAdaptationSkeletonAnimation()
                 if (success && data != null) {
                     val advice = data.optString("recommendation", "Continue your routine! Keep logging meals and workouts to get customized advice.")
                     
-                    // Format advice tags to stand out with bold and primary/accent colors
+                    // Format advice tags to stand out with bold black typography (no colors or emojis)
                     var formattedAdvice = advice
-                        .replace("[WORKOUT ADAPTATION]", "<b><font color='#3B82F6'>🏋️ WORKOUT ADAPTATION</font></b>")
-                        .replace("[NUTRITION ADAPTATION]", "<br/><b><font color='#10B981'>🥗 NUTRITION ADAPTATION</font></b>")
+                        .replace("[WORKOUT ADAPTATION]", "<b>WORKOUT ADAPTATION</b>")
+                        .replace("[NUTRITION ADAPTATION]", "<br/><b>NUTRITION ADAPTATION</b>")
+                        .replace("Energy Demand", "<b>Energy Demand</b>")
+                        .replace("Enery Demand", "<b>Enery Demand</b>")
+                        .replace("Protein Shortfall", "<b>Protein Shortfall</b>")
+                        .replace("Lipids Level", "<b>Lipids Level</b>")
+                        .replace("Carbohydrate Needs", "<b>Carbohydrate Needs</b>")
                         .replace("• ", "<br/>• ")
                     
                     formattedAdvice = formattedAdvice.replace("<br/><br/>", "<br/>").trim()
