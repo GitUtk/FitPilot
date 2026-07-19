@@ -146,7 +146,20 @@ class DashboardFragment : Fragment() {
                 pbAdaptation.visibility = View.GONE
                 if (success && data != null) {
                     val advice = data.optString("recommendation", "Continue your routine! Keep logging meals and workouts to get customized advice.")
-                    tvAdaptationText.text = advice
+                    
+                    // Format advice tags to stand out with bold and primary/accent colors
+                    var formattedAdvice = advice
+                        .replace("[WORKOUT ADAPTATION]", "<b><font color='#3B82F6'>🏋️ WORKOUT ADAPTATION</font></b>")
+                        .replace("[NUTRITION ADAPTATION]", "<br/><b><font color='#10B981'>🥗 NUTRITION ADAPTATION</font></b>")
+                        .replace("• ", "<br/>• ")
+                    
+                    formattedAdvice = formattedAdvice.replace("<br/><br/>", "<br/>").trim()
+                    
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                        tvAdaptationText.text = android.text.Html.fromHtml(formattedAdvice, android.text.Html.FROM_HTML_MODE_LEGACY)
+                    } else {
+                        tvAdaptationText.text = android.text.Html.fromHtml(formattedAdvice)
+                    }
                 } else {
                     tvAdaptationText.text = "Add some workout and food logs to trigger AI adaptation engine insights."
                 }

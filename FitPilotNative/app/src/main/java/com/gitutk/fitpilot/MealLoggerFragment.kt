@@ -32,6 +32,9 @@ class MealLoggerFragment : Fragment() {
     private var thinkingBubbleView: View? = null
     private var thinkingRunnable: Runnable? = null
     private val thinkingHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    
+    // Skeleton loading variables
+    private val skeletonAnimators = mutableListOf<android.animation.ValueAnimator>()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -61,6 +64,7 @@ class MealLoggerFragment : Fragment() {
         thinkingRunnable?.let {
             thinkingHandler.removeCallbacks(it)
         }
+        clearSkeletonAnimators()
     }
 
     private fun showThinkingBubble() {
@@ -218,10 +222,129 @@ class MealLoggerFragment : Fragment() {
         addMessageBubble(welcomeText, false)
     }
 
+    private fun showSkeletalLoading() {
+        val context = context ?: return
+        val density = context.resources.displayMetrics.density
+        
+        val marginTopBottom = (8 * density).toInt()
+        val marginOpposite = (96 * density).toInt()
+        val marginSide = (8 * density).toInt()
+        val cardRadius = 18 * density
+        val strokePx = (1.5f * density).toInt()
+        val padHorizontal = (16 * density).toInt()
+        val padVertical = (16 * density).toInt()
+
+        val widths = listOf(
+            listOf(0.7f, 0.4f),
+            listOf(0.85f, 0.6f, 0.3f),
+            listOf(0.5f)
+        )
+
+        for (i in 0 until 3) {
+            val bubble = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    topMargin = marginTopBottom
+                    bottomMargin = marginTopBottom
+                }
+                gravity = Gravity.START
+            }
+
+            val card = MaterialCardView(context).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    leftMargin = marginSide
+                    rightMargin = marginOpposite
+                }
+                cardElevation = 0f
+                radius = cardRadius
+                setContentPadding(padHorizontal, padVertical, padHorizontal, padVertical)
+                setCardBackgroundColor(ContextCompat.getColorStateList(context, R.color.card_background))
+                setStrokeColor(ContextCompat.getColorStateList(context, R.color.border))
+                strokeWidth = strokePx
+            }
+
+            val barContainer = LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.WRAP_CONTENT
+                )
+            }
+
+            val bubbleWidths = widths[i]
+            for (j in bubbleWidths.indices) {
+                val relativeWidth = bubbleWidths[j]
+                val bar = View(context).apply {
+                    val shape = android.graphics.drawable.GradientDrawable().apply {
+                        shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+                        cornerRadius = 6 * density
+                        setColor(android.graphics.Color.parseColor("#E2E8F0"))
+                    }
+                    background = shape
+                    
+                    layoutParams = LinearLayout.LayoutParams(
+                        0,
+                        (14 * density).toInt()
+                    ).apply {
+                        weight = relativeWidth
+                        topMargin = if (j > 0) (8 * density).toInt() else 0
+                    }
+                }
+                
+                val rowContainer = LinearLayout(context).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    )
+                    weightSum = 1f
+                }
+                rowContainer.addView(bar)
+                barContainer.addView(rowContainer)
+            }
+
+            card.addView(barContainer)
+            bubble.addView(card)
+            llChatMessages.addView(bubble)
+            
+            val animator = android.animation.ValueAnimator.ofFloat(0.4f, 1.0f).apply {
+                duration = 800
+                repeatMode = android.animation.ValueAnimator.REVERSE
+                repeatCount = android.animation.ValueAnimator.INFINITE
+                addUpdateListener { animation ->
+                    val alphaVal = animation.animatedValue as Float
+                    card.alpha = alphaVal
+                }
+                startDelay = (i * 200).toLong()
+            }
+            skeletonAnimators.add(animator)
+            animator.start()
+        }
+    }
+
+    private fun clearSkeletonAnimators() {
+        for (animator in skeletonAnimators) {
+            animator.cancel()
+        }
+        skeletonAnimators.clear()
+    }
+
     private fun fetchChatHistory() {
         llChatMessages.removeAllViews()
+        clearSkeletonAnimators()
+        showSkeletalLoading()
+        scrollToBottom()
+        
         apiService.getChatHistory { success, array, error ->
             activity?.runOnUiThread {
+                clearSkeletonAnimators()
+                llChatMessages.removeAllViews()
                 if (success && array != null && array.length() > 0) {
                     for (i in 0 until array.length()) {
                         val msg = array.getJSONObject(i)
