@@ -38,11 +38,11 @@ Here is a visual walkthrough of the application interface and user flow:
 
 | 1. Login & Signup Authentication | 2. Daily Activity Dashboard | 3. Nutrition & Food Suggestions |
 |:---:|:---:|:---:|
-| <img src="assets/1.png?v=2" width="240" /> | <img src="assets/2.png?v=2" width="240" /> | <img src="assets/3.png?v=2" width="240" /> |
+| <img src="assets/screen_auth.png" width="240" /> | <img src="assets/screen_dashboard.png" width="240" /> | <img src="assets/screen_nutrition.png" width="240" /> |
 
 | 4. Workout Logger & History | 5. Live AI Pose Tracker | 6. Conversational AI Coach Chatbot |
 |:---:|:---:|:---:|
-| <img src="assets/4.png?v=2" width="240" /> | <img src="assets/5.png?v=2" width="240" /> | <img src="assets/6.png?v=2" width="240" /> |
+| <img src="assets/screen_workout.png" width="240" /> | <img src="assets/screen_pose.png" width="240" /> | <img src="assets/screen_chat.png" width="240" /> |
 
 ---
 
