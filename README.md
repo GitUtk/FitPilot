@@ -50,6 +50,7 @@ Here is a visual walkthrough of the application interface and user flow:
 
 ### 1. Daily Activity Dashboard
 - **AI Adaptation Engine**: Analyzes your logged meals and physical exercises for today, calculates metabolic targets based on body weight guidelines, and outputs macro and calorie guidance saved directly to your profile.
+- **Sleep & Recovery Tracker**: Simple visual tracker showing restorative recovery score, sleep duration breakdown, and active timeline (Asleep ➔ Deep ➔ REM ➔ Awake).
 - **Real-Time Performance Indicators**: Dynamic grid highlighting active calorie burn, logged calories consumed, exercise exertion rate, and macronutrient balance (Protein/Carbs/Fat).
 
 ### 2. Conversational Meal Logger

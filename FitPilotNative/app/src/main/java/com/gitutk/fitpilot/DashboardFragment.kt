@@ -35,9 +35,18 @@ class DashboardFragment : Fragment() {
     private lateinit var tvProteinBalanceVal: TextView
     private lateinit var tvMacrosSub: TextView
     
+    private lateinit var tvRecoveryScore: TextView
+    private lateinit var tvRecoveryStatus: TextView
+    private lateinit var tvRecoveryStatusSub: TextView
+    
     private lateinit var btnSync: Button
     private lateinit var btnLogout: ImageButton
     private lateinit var llSuggestionsContainer: android.widget.LinearLayout
+
+    // Shared metrics for dynamic recovery calculation
+    private var todayBurn: Double = 0.0
+    private var todayExertion: Double = 0.0
+    private var todayProtein: Double = 0.0
 
     // IST timezone
     private val istTimeZone: TimeZone = TimeZone.getTimeZone("Asia/Kolkata")
@@ -66,6 +75,10 @@ class DashboardFragment : Fragment() {
         btnSync = view.findViewById(R.id.btnSync)
         btnLogout = view.findViewById(R.id.btnLogout)
         llSuggestionsContainer = view.findViewById(R.id.llSuggestionsContainer)
+
+        tvRecoveryScore = view.findViewById(R.id.tvRecoveryScore)
+        tvRecoveryStatus = view.findViewById(R.id.tvRecoveryStatus)
+        tvRecoveryStatusSub = view.findViewById(R.id.tvRecoveryStatusSub)
 
         // Set Date in IST
         val sdf = SimpleDateFormat("EEEE, MMM dd", Locale.getDefault())
@@ -142,6 +155,10 @@ class DashboardFragment : Fragment() {
                     tvWorkoutBurnVal.text = "$burn kcal"
                     tvWorkoutBurnSub.text = "$mins mins training"
                     tvExertionRateVal.text = String.format(Locale.getDefault(), "%.1f", exertion)
+
+                    todayBurn = burn.toDouble()
+                    todayExertion = exertion
+                    calculateAndDisplayRecovery()
                 }
             }
         }
@@ -166,6 +183,9 @@ class DashboardFragment : Fragment() {
                     tvFoodLoggedVal.text = "${totalCalories.toInt()} kcal"
                     tvProteinBalanceVal.text = "${totalProtein.toInt()}g"
                     tvMacrosSub.text = "C: ${totalCarbs.toInt()}g • F: ${totalFat.toInt()}g"
+
+                    todayProtein = totalProtein
+                    calculateAndDisplayRecovery()
                 }
             }
         }
@@ -197,6 +217,44 @@ class DashboardFragment : Fragment() {
                     }
                 } else {
                     tvAdaptationText.text = "Add some workout and food logs to trigger AI adaptation engine insights."
+                }
+            }
+        }
+    }
+
+    private fun calculateAndDisplayRecovery() {
+        val userWeight = apiService.userWeight.toDouble()
+        val targetProtein = 1.6 * userWeight
+        val proteinDeficit = if (todayProtein < targetProtein) targetProtein - todayProtein else 0.0
+        
+        // Base sleep requirement is 7.5 hours
+        // Physical exertion & calorie burn increases physical fatigue (adds up to 1.8 hours sleep need)
+        val exertionFactor = todayExertion.coerceIn(0.0, 10.0)
+        val workoutSleepBonus = (exertionFactor * 0.12) + (todayBurn / 450.0)
+        
+        // Slower muscle repair due to protein shortfall increases sleep recovery need (adds up to 0.7 hours sleep need)
+        val proteinSleepBonus = if (proteinDeficit > 0) (proteinDeficit / targetProtein) * 0.7 else 0.0
+        
+        val totalSleepHours = (7.5 + workoutSleepBonus + proteinSleepBonus).coerceIn(7.0, 9.8)
+        
+        // Calculate dynamic recovery percentage
+        val recoveryScoreVal = (95 - (exertionFactor * 4.2) - (todayBurn / 22.0) - (proteinSleepBonus * 8.0)).toInt().coerceIn(35, 98)
+        
+        activity?.runOnUiThread {
+            tvRecoveryScore.text = "$recoveryScoreVal%"
+            
+            when {
+                recoveryScoreVal >= 80 -> {
+                    tvRecoveryStatus.text = "Optimal Recovery"
+                    tvRecoveryStatusSub.text = String.format(Locale.getDefault(), "Ready for training • %.1fh sleep recommended", totalSleepHours)
+                }
+                recoveryScoreVal >= 60 -> {
+                    tvRecoveryStatus.text = "Moderate Fatigue"
+                    tvRecoveryStatusSub.text = String.format(Locale.getDefault(), "Active recovery recommended • %.1fh sleep needed", totalSleepHours)
+                }
+                else -> {
+                    tvRecoveryStatus.text = "High Fatigue / Rest Day"
+                    tvRecoveryStatusSub.text = String.format(Locale.getDefault(), "Muscles rebuilding • %.1fh sleep required", totalSleepHours)
                 }
             }
         }
