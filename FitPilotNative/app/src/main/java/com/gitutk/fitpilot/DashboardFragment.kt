@@ -11,6 +11,8 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 import java.text.SimpleDateFormat
@@ -144,80 +146,72 @@ class DashboardFragment : Fragment() {
     private fun refreshStats() {
         startAdaptationSkeletonAnimation()
 
-        // 1. Fetch today's workout stats (IST-filtered on backend)
-        apiService.getWorkoutStats { success, data, error ->
-            if (success && data != null) {
-                activity?.runOnUiThread {
-                    val burn = data.optDouble("total_calories", 0.0).toInt()
-                    val mins = data.optInt("total_duration", 0)
-                    val exertion = data.optDouble("average_intensity", 0.0)
+        viewLifecycleOwner.lifecycleScope.launch {
+            // 1. Fetch today's workout stats
+            val (wSuccess, data, _) = apiService.getWorkoutStats()
+            if (wSuccess && data != null) {
+                val burn = data.optDouble("total_calories", 0.0).toInt()
+                val mins = data.optInt("total_duration", 0)
+                val exertion = data.optDouble("average_intensity", 0.0)
 
-                    tvWorkoutBurnVal.text = "$burn kcal"
-                    tvWorkoutBurnSub.text = "$mins mins training"
-                    tvExertionRateVal.text = String.format(Locale.getDefault(), "%.1f", exertion)
+                tvWorkoutBurnVal.text = "$burn kcal"
+                tvWorkoutBurnSub.text = "$mins mins training"
+                tvExertionRateVal.text = String.format(Locale.getDefault(), "%.1f", exertion)
 
-                    todayBurn = burn.toDouble()
-                    todayExertion = exertion
-                    calculateAndDisplayRecovery()
-                }
+                todayBurn = burn.toDouble()
+                todayExertion = exertion
+                calculateAndDisplayRecovery()
             }
-        }
 
-        // 2. Fetch today's meals (IST-filtered on backend)
-        apiService.getMealsToday { success, mealsArray, error ->
-            if (success && mealsArray != null) {
-                activity?.runOnUiThread {
-                    var totalCalories = 0.0
-                    var totalProtein = 0.0
-                    var totalCarbs = 0.0
-                    var totalFat = 0.0
+            // 2. Fetch today's meals
+            val (mSuccess, mealsArray, _) = apiService.getMealsToday()
+            if (mSuccess && mealsArray != null) {
+                var totalCalories = 0.0
+                var totalProtein = 0.0
+                var totalCarbs = 0.0
+                var totalFat = 0.0
 
-                    for (i in 0 until mealsArray.length()) {
-                        val meal = mealsArray.getJSONObject(i)
-                        totalCalories += meal.optDouble("calories", 0.0)
-                        totalProtein += meal.optDouble("protein", 0.0)
-                        totalCarbs += meal.optDouble("carbs", 0.0)
-                        totalFat += meal.optDouble("fat", 0.0)
-                    }
-
-                    tvFoodLoggedVal.text = "${totalCalories.toInt()} kcal"
-                    tvProteinBalanceVal.text = "${totalProtein.toInt()}g"
-                    tvMacrosSub.text = "C: ${totalCarbs.toInt()}g • F: ${totalFat.toInt()}g"
-
-                    todayProtein = totalProtein
-                    calculateAndDisplayRecovery()
+                for (i in 0 until mealsArray.length()) {
+                    val meal = mealsArray.getJSONObject(i)
+                    totalCalories += meal.optDouble("calories", 0.0)
+                    totalProtein += meal.optDouble("protein", 0.0)
+                    totalCarbs += meal.optDouble("carbs", 0.0)
+                    totalFat += meal.optDouble("fat", 0.0)
                 }
-            }
-        }
 
-        // 3. Fetch AI adaptation advice (IST-filtered on backend)
-        apiService.getAdaptationAdvice { success, data, error ->
-            activity?.runOnUiThread {
-                stopAdaptationSkeletonAnimation()
-                if (success && data != null) {
-                    val advice = data.optString("recommendation", "Continue your routine! Keep logging meals and workouts to get customized advice.")
-                    
-                    // Format advice tags to stand out with bold black typography (no colors or emojis)
-                    var formattedAdvice = advice
-                        .replace("[WORKOUT ADAPTATION]", "<b>WORKOUT ADAPTATION</b>")
-                        .replace("[NUTRITION ADAPTATION]", "<br/><b>NUTRITION ADAPTATION</b>")
-                        .replace("Energy Demand", "<b>Energy Demand</b>")
-                        .replace("Enery Demand", "<b>Enery Demand</b>")
-                        .replace("Protein Shortfall", "<b>Protein Shortfall</b>")
-                        .replace("Lipids Level", "<b>Lipids Level</b>")
-                        .replace("Carbohydrate Needs", "<b>Carbohydrate Needs</b>")
-                        .replace("• ", "<br/>• ")
-                    
-                    formattedAdvice = formattedAdvice.replace("<br/><br/>", "<br/>").trim()
-                    
-                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-                        tvAdaptationText.text = android.text.Html.fromHtml(formattedAdvice, android.text.Html.FROM_HTML_MODE_LEGACY)
-                    } else {
-                        tvAdaptationText.text = android.text.Html.fromHtml(formattedAdvice)
-                    }
+                tvFoodLoggedVal.text = "${totalCalories.toInt()} kcal"
+                tvProteinBalanceVal.text = "${totalProtein.toInt()}g"
+                tvMacrosSub.text = "C: ${totalCarbs.toInt()}g • F: ${totalFat.toInt()}g"
+
+                todayProtein = totalProtein
+                calculateAndDisplayRecovery()
+            }
+
+            // 3. Fetch AI adaptation advice
+            val (aSuccess, aData, _) = apiService.getAdaptationAdvice()
+            stopAdaptationSkeletonAnimation()
+            if (aSuccess && aData != null) {
+                val advice = aData.optString("recommendation", "Continue your routine! Keep logging meals and workouts to get customized advice.")
+                
+                var formattedAdvice = advice
+                    .replace("[WORKOUT ADAPTATION]", "<b>WORKOUT ADAPTATION</b>")
+                    .replace("[NUTRITION ADAPTATION]", "<br/><b>NUTRITION ADAPTATION</b>")
+                    .replace("Energy Demand", "<b>Energy Demand</b>")
+                    .replace("Enery Demand", "<b>Enery Demand</b>")
+                    .replace("Protein Shortfall", "<b>Protein Shortfall</b>")
+                    .replace("Lipids Level", "<b>Lipids Level</b>")
+                    .replace("Carbohydrate Needs", "<b>Carbohydrate Needs</b>")
+                    .replace("• ", "<br/>• ")
+                
+                formattedAdvice = formattedAdvice.replace("<br/><br/>", "<br/>").trim()
+                
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                    tvAdaptationText.text = android.text.Html.fromHtml(formattedAdvice, android.text.Html.FROM_HTML_MODE_LEGACY)
                 } else {
-                    tvAdaptationText.text = "Add some workout and food logs to trigger AI adaptation engine insights."
+                    tvAdaptationText.text = android.text.Html.fromHtml(formattedAdvice)
                 }
+            } else {
+                tvAdaptationText.text = "Add some workout and food logs to trigger AI adaptation engine insights."
             }
         }
     }

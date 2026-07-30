@@ -6,6 +6,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.*
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 
 class SignupFragment : Fragment() {
 
@@ -92,18 +94,17 @@ class SignupFragment : Fragment() {
         btnSignup.isEnabled = false
         progressBar.visibility = View.VISIBLE
 
-        apiService.signup(email, password, name, weight, height, gender) { success, error ->
-            activity?.runOnUiThread {
-                progressBar.visibility = View.GONE
-                btnSignup.isEnabled = true
-                btnSignup.text = "Sign Up"
+        viewLifecycleOwner.lifecycleScope.launch {
+            val (success, error) = apiService.signup(email, password, name, weight, height, gender)
+            progressBar.visibility = View.GONE
+            btnSignup.isEnabled = true
+            btnSignup.text = "Sign Up"
 
-                if (success) {
-                    Toast.makeText(context, "Account created! Please log in.", Toast.LENGTH_LONG).show()
-                    parentFragmentManager.popBackStack()
-                } else {
-                    Toast.makeText(context, error ?: "Signup failed", Toast.LENGTH_LONG).show()
-                }
+            if (success) {
+                Toast.makeText(context, "Account created! Please log in.", Toast.LENGTH_LONG).show()
+                parentFragmentManager.popBackStack()
+            } else {
+                Toast.makeText(context, error ?: "Signup failed", Toast.LENGTH_LONG).show()
             }
         }
     }

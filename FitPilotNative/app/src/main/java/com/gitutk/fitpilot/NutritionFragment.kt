@@ -9,6 +9,8 @@ import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 
@@ -197,19 +199,18 @@ class NutritionFragment : Fragment() {
 
     private fun quickLogMeal(item: NutritionItem) {
         Toast.makeText(context, "Logging ${item.name}...", Toast.LENGTH_SHORT).show()
-        apiService.logMeal(
-            description = item.name,
-            calories = item.calories,
-            protein = item.protein,
-            carbs = item.carbs,
-            fat = item.fat
-        ) { success, _, error ->
-            activity?.runOnUiThread {
-                if (success) {
-                    Toast.makeText(context, "${item.name} added to today's logged meals!", Toast.LENGTH_LONG).show()
-                } else {
-                    Toast.makeText(context, error ?: "Failed to log meal", Toast.LENGTH_LONG).show()
-                }
+        viewLifecycleOwner.lifecycleScope.launch {
+            val (success, _, error) = apiService.logMeal(
+                description = item.name,
+                calories = item.calories,
+                protein = item.protein,
+                carbs = item.carbs,
+                fat = item.fat
+            )
+            if (success) {
+                Toast.makeText(context, "${item.name} added to today's logged meals!", Toast.LENGTH_LONG).show()
+            } else {
+                Toast.makeText(context, error ?: "Failed to log meal", Toast.LENGTH_LONG).show()
             }
         }
     }

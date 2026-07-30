@@ -8,6 +8,8 @@ import android.view.ViewGroup
 import android.widget.*
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import com.google.android.material.card.MaterialCardView
 import org.json.JSONArray
 import org.json.JSONObject
@@ -161,39 +163,36 @@ class MealLoggerFragment : Fragment() {
             showThinkingBubble()
             scrollToBottom()
 
-            apiService.chatMeal(text) { success, data, error ->
-                activity?.runOnUiThread {
-                    btnSendChat.isEnabled = true
-                    removeThinkingBubble()
-                    if (success && data != null) {
-                        val reply = data.optString("text", "I've processed your request.")
-                        addMessageBubble(reply, false)
-                        
-                        // If food items were parsed, let the user know by a toast
-                        val foodItems = data.optJSONArray("logged_items")
-                        if (foodItems != null && foodItems.length() > 0) {
-                            Toast.makeText(context, "Logged ${foodItems.length()} items to metabolic log!", Toast.LENGTH_SHORT).show()
-                        }
-                    } else {
-                        addMessageBubble(error ?: "Failed to get advice from coach. Please try again.", false)
+            viewLifecycleOwner.lifecycleScope.launch {
+                val (success, data, error) = apiService.chatMeal(text)
+                btnSendChat.isEnabled = true
+                removeThinkingBubble()
+                if (success && data != null) {
+                    val reply = data.optString("text", "I've processed your request.")
+                    addMessageBubble(reply, false)
+                    
+                    val foodItems = data.optJSONArray("logged_items")
+                    if (foodItems != null && foodItems.length() > 0) {
+                        Toast.makeText(context, "Logged ${foodItems.length()} items to metabolic log!", Toast.LENGTH_SHORT).show()
                     }
-                    scrollToBottom()
+                } else {
+                    addMessageBubble(error ?: "Failed to get advice from coach. Please try again.", false)
                 }
+                scrollToBottom()
             }
         }
 
         btnClearChat.setOnClickListener {
             btnClearChat.isEnabled = false
-            apiService.clearChatHistory { success, error ->
-                activity?.runOnUiThread {
-                    btnClearChat.isEnabled = true
-                    if (success) {
-                        llChatMessages.removeAllViews()
-                        showWelcomeMessage()
-                        Toast.makeText(context, "Chat history cleared", Toast.LENGTH_SHORT).show()
-                    } else {
-                        Toast.makeText(context, error ?: "Failed to clear chat", Toast.LENGTH_SHORT).show()
-                    }
+            viewLifecycleOwner.lifecycleScope.launch {
+                val (success, error) = apiService.clearChatHistory()
+                btnClearChat.isEnabled = true
+                if (success) {
+                    llChatMessages.removeAllViews()
+                    showWelcomeMessage()
+                    Toast.makeText(context, "Chat history cleared", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(context, error ?: "Failed to clear chat", Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -351,22 +350,21 @@ class MealLoggerFragment : Fragment() {
         showSkeletalLoading()
         scrollToBottom()
         
-        apiService.getChatHistory { success, array, error ->
-            activity?.runOnUiThread {
-                clearSkeletonAnimators()
-                llChatMessages.removeAllViews()
-                if (success && array != null && array.length() > 0) {
-                    for (i in 0 until array.length()) {
-                        val msg = array.getJSONObject(i)
-                        val role = msg.optString("role", "")
-                        val text = msg.optString("text", "")
-                        addMessageBubble(text, role == "user")
-                    }
-                } else {
-                    showWelcomeMessage()
+        viewLifecycleOwner.lifecycleScope.launch {
+            val (success, array, _) = apiService.getChatHistory()
+            clearSkeletonAnimators()
+            llChatMessages.removeAllViews()
+            if (success && array != null && array.length() > 0) {
+                for (i in 0 until array.length()) {
+                    val msg = array.getJSONObject(i)
+                    val role = msg.optString("role", "")
+                    val text = msg.optString("text", "")
+                    addMessageBubble(text, role == "user")
                 }
-                scrollToBottom()
+            } else {
+                showWelcomeMessage()
             }
+            scrollToBottom()
         }
     }
 

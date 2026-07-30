@@ -10,6 +10,8 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 
 class LoginFragment : Fragment() {
 
@@ -58,17 +60,16 @@ class LoginFragment : Fragment() {
         btnLogin.isEnabled = false
         progressBar.visibility = View.VISIBLE
 
-        apiService.login(email, password) { success, error ->
-            activity?.runOnUiThread {
-                progressBar.visibility = View.GONE
-                btnLogin.isEnabled = true
-                btnLogin.text = "Log In"
+        viewLifecycleOwner.lifecycleScope.launch {
+            val (success, error) = apiService.login(email, password)
+            progressBar.visibility = View.GONE
+            btnLogin.isEnabled = true
+            btnLogin.text = "Log In"
 
-                if (success) {
-                    (activity as MainActivity).showMainApp()
-                } else {
-                    Toast.makeText(context, error ?: "Login failed", Toast.LENGTH_LONG).show()
-                }
+            if (success) {
+                (activity as MainActivity).showMainApp()
+            } else {
+                Toast.makeText(context, error ?: "Login failed", Toast.LENGTH_LONG).show()
             }
         }
     }

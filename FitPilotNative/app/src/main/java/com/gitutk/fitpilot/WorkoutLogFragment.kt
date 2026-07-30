@@ -7,6 +7,8 @@ import android.view.ViewGroup
 import android.widget.*
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.*
@@ -244,16 +246,15 @@ class WorkoutLogFragment : Fragment() {
         val weight = if (selectedExerciseKey == "pushup") 0.0 else weightStr.toDouble()
 
         btnLogSet.isEnabled = false
-        apiService.logWorkout(selectedExerciseKey, sets, reps, weight) { success, _, error ->
-            activity?.runOnUiThread {
-                btnLogSet.isEnabled = true
-                if (success) {
-                    val displayName = selectedExerciseKey.replaceFirstChar { it.uppercase() }
-                    Toast.makeText(context, "$displayName set logged!", Toast.LENGTH_SHORT).show()
-                    fetchTodayStats()
-                } else {
-                    Toast.makeText(context, error ?: "Failed to log set", Toast.LENGTH_LONG).show()
-                }
+        viewLifecycleOwner.lifecycleScope.launch {
+            val (success, _, error) = apiService.logWorkout(selectedExerciseKey, sets, reps, weight)
+            btnLogSet.isEnabled = true
+            if (success) {
+                val displayName = selectedExerciseKey.replaceFirstChar { it.uppercase() }
+                Toast.makeText(context, "$displayName set logged!", Toast.LENGTH_SHORT).show()
+                fetchTodayStats()
+            } else {
+                Toast.makeText(context, error ?: "Failed to log set", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -266,13 +267,13 @@ class WorkoutLogFragment : Fragment() {
     private fun fetchTodayStats() {
         pbHistory.visibility = View.VISIBLE
 
-        apiService.getWorkoutStats { success, data, _ ->
-            activity?.runOnUiThread {
-                pbHistory.visibility = View.GONE
+        viewLifecycleOwner.lifecycleScope.launch {
+            val (success, data, _) = apiService.getWorkoutStats()
+            pbHistory.visibility = View.GONE
 
-                // Clear and recreate today's exercises container header
-                llTodayExercisesContainer.removeAllViews()
-                val headerTv = TextView(context).apply {
+            // Clear and recreate today's exercises container header
+            llTodayExercisesContainer.removeAllViews()
+            val headerTv = TextView(context).apply {
                     text = "Logged Exercises Today"
                     setTextColor(ContextCompat.getColor(context, R.color.text_secondary))
                     textSize = 11f

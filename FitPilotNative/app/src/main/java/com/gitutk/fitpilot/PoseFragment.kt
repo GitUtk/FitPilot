@@ -21,6 +21,8 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import com.gitutk.fitpilot.data.BodyPart
 import com.gitutk.fitpilot.data.Device
 import com.gitutk.fitpilot.data.Person
@@ -457,15 +459,14 @@ class PoseFragment : Fragment() {
             }
 
             btnEndSession.isEnabled = false
-            apiService.logWorkout(exerciseMode, sets = 1, reps = repsCount, weight = defaultWeight) { success, data, error ->
-                activity?.runOnUiThread {
-                    if (success) {
-                        Toast.makeText(context, "Saved to metabolic log!", Toast.LENGTH_SHORT).show()
-                    } else {
-                        Toast.makeText(context, error ?: "Failed to save online", Toast.LENGTH_LONG).show()
-                    }
-                    parentFragmentManager.popBackStack()
+            viewLifecycleOwner.lifecycleScope.launch {
+                val (success, _, error) = apiService.logWorkout(exerciseMode, sets = 1, reps = repsCount, weight = defaultWeight)
+                if (success) {
+                    Toast.makeText(context, "Saved to metabolic log!", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(context, error ?: "Failed to save online", Toast.LENGTH_LONG).show()
                 }
+                parentFragmentManager.popBackStack()
             }
         } else {
             Toast.makeText(context, "Session discarded (0 reps)", Toast.LENGTH_SHORT).show()
