@@ -41,6 +41,8 @@ class DashboardFragment : Fragment() {
     private lateinit var tvRecoveryStatus: TextView
     private lateinit var tvRecoveryStatusSub: TextView
     
+    private lateinit var tvStreakCount: TextView
+    private lateinit var llStreakBadge: android.widget.LinearLayout
     private lateinit var btnSync: Button
     private lateinit var btnLogout: ImageButton
     private lateinit var llSuggestionsContainer: android.widget.LinearLayout
@@ -74,6 +76,8 @@ class DashboardFragment : Fragment() {
         tvProteinBalanceVal = view.findViewById(R.id.tvProteinBalanceVal)
         tvMacrosSub = view.findViewById(R.id.tvMacrosSub)
         
+        tvStreakCount = view.findViewById(R.id.tvStreakCount)
+        llStreakBadge = view.findViewById(R.id.llStreakBadge)
         btnSync = view.findViewById(R.id.btnSync)
         btnLogout = view.findViewById(R.id.btnLogout)
         llSuggestionsContainer = view.findViewById(R.id.llSuggestionsContainer)
@@ -186,6 +190,10 @@ class DashboardFragment : Fragment() {
                 todayProtein = totalProtein
                 calculateAndDisplayRecovery()
             }
+
+            // Update user streak count based on activity & backend stats
+            val mealsCount = if (mSuccess && mealsArray != null) mealsArray.length() else 0
+            updateStreakLogic(data, mealsCount)
 
             // 3. Fetch AI adaptation advice
             val (aSuccess, aData, _) = apiService.getAdaptationAdvice()
@@ -308,5 +316,43 @@ class DashboardFragment : Fragment() {
 
             llSuggestionsContainer.addView(cardView)
         }
+    }
+
+    private fun updateStreakLogic(wData: JSONObject?, mealsCount: Int) {
+        val context = context ?: return
+        val prefs = context.getSharedPreferences("fitpilot_prefs", Context.MODE_PRIVATE)
+        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).apply { timeZone = istTimeZone }
+        val todayStr = sdf.format(Date())
+
+        val cal = Calendar.getInstance(istTimeZone).apply { add(Calendar.DAY_OF_YEAR, -1) }
+        val yesterdayStr = sdf.format(cal.time)
+
+        val lastActiveDate = prefs.getString("last_active_date", "") ?: ""
+        var streakCount = prefs.getInt("streak_count", 0)
+
+        // Check if backend returned a streak count directly
+        val backendStreak = wData?.optInt("streak_days", 0) ?: wData?.optInt("current_streak", 0) ?: 0
+        if (backendStreak > 0) {
+            streakCount = backendStreak
+            prefs.edit().putInt("streak_count", streakCount).putString("last_active_date", todayStr).apply()
+        } else {
+            val totalSets = wData?.optInt("total_sets", 0) ?: 0
+            val hasActivityToday = totalSets > 0 || todayBurn > 0 || mealsCount > 0
+
+            if (hasActivityToday) {
+                if (lastActiveDate == yesterdayStr) {
+                    streakCount += 1
+                    prefs.edit().putInt("streak_count", streakCount).putString("last_active_date", todayStr).apply()
+                } else if (lastActiveDate != todayStr) {
+                    streakCount = 1
+                    prefs.edit().putInt("streak_count", streakCount).putString("last_active_date", todayStr).apply()
+                }
+            } else if (lastActiveDate != todayStr && lastActiveDate != yesterdayStr && lastActiveDate.isNotEmpty()) {
+                streakCount = 0
+                prefs.edit().putInt("streak_count", 0).apply()
+            }
+        }
+
+        tvStreakCount.text = "$streakCount ${if (streakCount == 1) "Day" else "Days"}"
     }
 }
