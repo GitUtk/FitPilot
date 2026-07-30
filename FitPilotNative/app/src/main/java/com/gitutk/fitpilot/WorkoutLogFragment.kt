@@ -421,4 +421,3 @@ class WorkoutLogFragment : Fragment() {
             }
         }
     }
-}
